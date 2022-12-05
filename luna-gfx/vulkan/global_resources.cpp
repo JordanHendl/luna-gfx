@@ -20,18 +20,33 @@ constexpr auto MAX_OBJECT_AMT = 1024;
 constexpr auto MAX_CMD_AMT = 64;
 constexpr auto MAX_WINDOW_AMT = 10;
 
-auto create_pool(Device& device, int queue_family) -> vk::CommandPool {
-  const vk::CommandPoolCreateFlags flags =
-      vk::CommandPoolCreateFlagBits::eResetCommandBuffer;  // TODO make this
-                                                           // configurable.
-  static auto pool_map = std::map<vk::Device, std::map<int, vk::CommandPool>>();
-  auto info = vk::CommandPoolCreateInfo();
-  info.setFlags(flags);
-  info.setQueueFamilyIndex(queue_family);
+static auto get_pool_map() -> std::map<vk::Device, std::map<int, vk::CommandPool>>& {
+  return global_resources().pool_map;
+}
 
+inline auto reset_command_pools(std::vector<Device>& devices) -> void {
+  auto& pool_map = get_pool_map();
+  for(auto& device_map : pool_map) {
+    for(auto& pool : device_map.second) {
+      for(auto& tmp : devices) {
+        if(tmp.gpu == device_map.first && pool.second) {
+          device_map.first.destroyCommandPool(pool.second, tmp.allocate_cb, tmp.m_dispatch);
+        }
+      }
+    }
+  }
+}
+
+auto create_pool(Device& device, int queue_family) -> vk::CommandPool {
+  const auto flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;  // TODO make this configurable.
+  
+  auto& pool_map = get_pool_map();
   auto& queue_map = pool_map[device.gpu];
   auto iter = queue_map.find(queue_family);
   if (iter == queue_map.end()) {
+    auto info = vk::CommandPoolCreateInfo();
+    info.setFlags(flags);
+    info.setQueueFamilyIndex(queue_family);
     auto pool = error(device.gpu.createCommandPool(
         info, device.allocate_cb, device.m_dispatch));
     iter = queue_map.insert(iter, {queue_family, pool});
@@ -157,6 +172,8 @@ GlobalResources::~GlobalResources() {
 
   this->buffers.clear();
   this->images.clear();
+  
+  reset_command_pools(this->devices);
 
   for(auto& dev : this->devices) {
     auto tmp = std::move(dev);

@@ -32,6 +32,8 @@ auto create_pool(Device& device, int queue_family) -> vk::CommandPool;
 //inline auto synchronize(int32_t cmd_buffer) -> void;
 
 struct GlobalResources {
+  std::map<vk::Device, std::map<int, vk::CommandPool>> pool_map;
+  
   gfx::Dlloader vulkan_loader;
   std::unique_ptr<Instance> instance;
   std::vector<VmaAllocator> allocators;

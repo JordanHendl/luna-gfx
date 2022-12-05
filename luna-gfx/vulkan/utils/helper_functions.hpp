@@ -8,8 +8,8 @@
 #include "luna-gfx/interface/image.hpp"
 #include "luna-gfx/interface/render_pass.hpp"
 #include "luna-gfx/interface/pipeline.hpp"
+#include "luna-gfx/interface/command_list.hpp"
 #include "luna-gfx/vulkan/global_resources.hpp"
-
 namespace luna {
 namespace vulkan {
 inline auto convert(luna::gfx::ImageFormat fmt) -> vk::Format {
@@ -32,6 +32,16 @@ inline auto convert(vk::Format fmt) -> gfx::ImageFormat {
   }
 }
 
+inline auto size_from_format(gfx::ImageFormat fmt) -> size_t {
+  switch(fmt) {
+    case gfx::ImageFormat::Depth : return sizeof(float);
+    case gfx::ImageFormat::RGBA32F : return sizeof(float) * 4;
+    case gfx::ImageFormat::RGBA8 : [[fallthrough]];
+    case gfx::ImageFormat::BGRA8 : [[fallthrough]];
+    default : return 4;
+  }
+}
+
 inline auto begin_command_buffer(int32_t handle) -> void {
   LunaAssert(handle >= 0, "Attempting to use an invalid command buffer.");
   auto& cmd = luna::vulkan::global_resources().cmds[handle];
@@ -46,29 +56,67 @@ inline auto end_command_buffer(int32_t handle) -> void {
   luna::vulkan::error(cmd.cmd.end(gpu.m_dispatch));
 }
 
-inline auto create_cmd(int gpu, CommandBuffer* parent = nullptr) -> int32_t {
+inline auto create_semaphores(int gpu_id, size_t amount) {
+  auto& res = global_resources();
+  auto& gpu = res.devices[gpu_id];
+
+  auto tmp = std::vector<vk::Semaphore>(amount);
+
+  for(auto& sem : tmp) {
+    sem = error(gpu.gpu.createSemaphore({}, gpu.allocate_cb, gpu.m_dispatch));
+  }
+
+  return tmp;
+}
+
+inline auto destroy_semaphores(int gpu_id, std::vector<vk::Semaphore> sems) -> std::vector<vk::Semaphore>{
+  auto& res = global_resources();
+  auto& gpu = res.devices[gpu_id];
+
+  for(auto sem : sems)
+    gpu.gpu.destroy(sem, gpu.allocate_cb, gpu.m_dispatch);
+
+  return {};
+}
+
+inline auto create_cmd(int gpu, gfx::Queue type = gfx::Queue::All, CommandBuffer* parent = nullptr) -> int32_t {
   auto& res = global_resources();
   auto index = find_valid_entry(res.cmds);
   auto& cmd = res.cmds[index];
   auto& device = res.devices[gpu];
-  auto pool = create_pool(device, device.graphics().id);
   auto info = vk::CommandBufferAllocateInfo();
   auto fence_info = vk::FenceCreateInfo();
+  
+  auto queue = device.graphics().queue;
+  auto queue_id = device.graphics().id;
+  switch(type) {
+    case gfx::Queue::Compute : queue_id = device.compute().id; queue = device.compute().queue; break;
+    case gfx::Queue::Transfer : queue_id = device.transfer().id; queue = device.transfer().queue; break;
+    case gfx::Queue::All :  [[fallthrough]];
+    case gfx::Queue::Graphics : [[fallthrough]];
+    default: queue_id = device.graphics().id; queue = device.graphics().queue; break;
+  }
+
+  auto pool = create_pool(device, queue_id);
   info.setCommandBufferCount(1);
   info.setCommandPool(pool);
   info.setLevel(parent ? vk::CommandBufferLevel::eSecondary : vk::CommandBufferLevel::ePrimary);
   cmd.cmd = error(device.gpu.allocateCommandBuffers(info, device.m_dispatch)).data()[0];
   cmd.fence = error(device.gpu.createFence(fence_info, device.allocate_cb, device.m_dispatch));
-
-  cmd.signal_sems.resize(1);
-  cmd.signal_sems[0] = error(device.gpu.createSemaphore({}, device.allocate_cb, device.m_dispatch));
+  cmd.queue = queue;
+  cmd.signal_sems = create_semaphores(gpu, 1);
   cmd.gpu = gpu;
+  cmd.pool = pool;
   return index;
 }
 
-inline auto destroy_cmd(int32_t handle) {
+inline auto destroy_cmd(int32_t handle) -> void {
   auto& res = global_resources();
   auto& cmd = res.cmds[handle];
+  auto& gpu = res.devices[cmd.gpu];
+  cmd.signal_sems = destroy_semaphores(cmd.gpu, cmd.signal_sems);
+  gpu.gpu.destroy(cmd.fence, gpu.allocate_cb, gpu.m_dispatch);
+  gpu.gpu.freeCommandBuffers(cmd.pool, 1, &cmd.cmd, gpu.m_dispatch);
   cmd.cmd = nullptr;
 }
 
@@ -76,7 +124,7 @@ inline auto submit_command_buffer(int32_t handle) -> void {
   auto& cmd = luna::vulkan::global_resources().cmds[handle];
   auto& gpu = luna::vulkan::global_resources().devices[cmd.gpu];
   auto& info = cmd.submit_info;
-  auto& queue = gpu.graphics();
+  auto& queue = cmd.queue;
 
   auto vector = std::vector<vk::Semaphore>();
   auto signal_sems = std::vector<vk::Semaphore>();
@@ -93,7 +141,7 @@ inline auto submit_command_buffer(int32_t handle) -> void {
   info.setSignalSemaphores(cmd.signal_sems);
   info.setWaitDstStageMask(masks);
 
-  error(queue.queue.submit(1, &info, cmd.fence, gpu.m_dispatch));
+  error(queue.submit(1, &info, cmd.fence, gpu.m_dispatch));
   cmd.signaled = true;
 }
 

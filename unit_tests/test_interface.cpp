@@ -4,6 +4,7 @@
 #include "luna-gfx/interface/render_pass.hpp"
 #include "luna-gfx/interface/pipeline.hpp"
 #include "luna-gfx/interface/window.hpp"
+#include "luna-gfx/interface/command_list.hpp"
 
 #include "unit_tests/vertex_shader.hpp"
 #include "unit_tests/fragment_shader.hpp"
@@ -154,6 +155,18 @@ TEST(Interface, CreateRenderPipeline) {
   
   auto pipeline = luna::gfx::GraphicsPipeline(rp, pipe_info);
   EXPECT_GE(pipeline.handle(), 0);
+}
+
+TEST(Interface, CreateCommandBuffer) {
+  constexpr auto cGPU = 0;
+  auto cmd = gfx::CommandList(cGPU); 
+  EXPECT_GE(cmd.handle(), 0);
+  
+  {
+    auto tmp = std::move(cmd);
+  }
+
+  EXPECT_LT(cmd.handle(), 0);
 }
 }
 

@@ -40,6 +40,8 @@ struct CommandBuffer {
   std::vector<vk::Semaphore> signal_sems = {};
   vk::SubmitInfo submit_info = {};
   vk::Fence fence = {};
+  vk::Queue queue = {};
+  vk::CommandPool pool = {};
   int gpu = -1;
   int32_t rp_id = -1;
   
