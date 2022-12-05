@@ -1,6 +1,8 @@
 #pragma once
 #include "luna-gfx/vulkan/vulkan_defines.hpp"
 #include "luna-gfx/vulkan/data_types.hpp"
+#include "luna-gfx/vulkan/render_pass.hpp"
+#include "luna-gfx/vulkan/pipeline.hpp"
 #include "luna-gfx/error/error.hpp"
 #include "luna-gfx/vulkan/device.hpp"
 #include "luna-gfx/interface/image.hpp"
@@ -496,11 +498,17 @@ inline auto destroy_image(int32_t handle) -> void {
 }
 
 inline auto create_graphics_pipeline(int32_t rp_handle, gfx::GraphicsPipelineInfo info) -> int32_t {
-  return -1;
+  auto& res = global_resources();
+  auto& rp = res.render_passes[rp_handle];
+  auto index = find_valid_entry(res.pipelines);
+  auto& pipe = res.pipelines[index];
+  
+  pipe = std::move(Pipeline(rp, info));
+  return index;
 }
 
 inline auto destroy_pipeline(int32_t handle) -> void {
-  ;
+  auto tmp = std::move(global_resources().pipelines[handle]);
 }
 
 inline auto create_bind_group(int32_t pipe_handle) -> int32_t {

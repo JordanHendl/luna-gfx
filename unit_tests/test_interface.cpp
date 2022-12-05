@@ -4,12 +4,13 @@
 #include "luna-gfx/interface/render_pass.hpp"
 #include "luna-gfx/interface/pipeline.hpp"
 #include "luna-gfx/interface/window.hpp"
+
+#include "unit_tests/vertex_shader.hpp"
+#include "unit_tests/fragment_shader.hpp"
 #include <array>
 #include <vector>
 #include <cstdint>
 namespace luna::interface_test {
-const auto vertex_shader = std::vector<std::uint32_t> {};
-const auto fragment_shader = std::vector<std::uint32_t> {};
 TEST(Interface, CreateBuffer) {
   constexpr auto cGPU = 0;
   constexpr auto cBufferSize = 1024u;

@@ -10,7 +10,7 @@
 namespace luna {
 namespace vulkan {
 
-static auto convert(gfx::Topology topology) -> vk::PrimitiveTopology {
+inline auto convert(gfx::Topology topology) -> vk::PrimitiveTopology {
   switch (topology) {
     case gfx::Topology::Triangle:
       return vk::PrimitiveTopology::eTriangleList;
@@ -21,6 +21,12 @@ static auto convert(gfx::Topology topology) -> vk::PrimitiveTopology {
   }
 }
 
+inline auto create_dynamic_state() {
+  return std::vector<vk::DynamicState> {
+    vk::DynamicState::eViewport,
+    vk::DynamicState::eScissor
+  };
+}
 Pipeline::Pipeline() {}
 
 Pipeline::~Pipeline() {
@@ -185,13 +191,16 @@ auto Pipeline::createPipeline() -> void {
   auto device = this->m_device->gpu;
   auto* alloc_cb = this->m_device->allocate_cb;
   auto& dispatch = this->m_device->m_dispatch;
+  auto dynamic_state = vk::PipelineDynamicStateCreateInfo();
+  auto tmp = create_dynamic_state();
+  dynamic_state.setDynamicStates(tmp);
 
   if (this->graphics()) {
     vertex_input.setVertexAttributeDescriptions(this->m_shader->inputs());
     vertex_input.setVertexBindingDescriptions(this->m_shader->bindings());
     this->m_viewport_info.setViewports(this->m_viewports);
     this->m_viewport_info.setScissors(this->m_scissors);
-
+    graphics_info.setPDynamicState(&dynamic_state);
     graphics_info.setStages(this->m_shader->shaderInfos());
     graphics_info.setLayout(this->m_layout);
     graphics_info.setPVertexInputState(&vertex_input);
@@ -244,10 +253,8 @@ auto Pipeline::parse(const gfx::GraphicsPipelineInfo& info) -> void {
   }
 
   this->m_assembly_info.setTopology(convert(info.details.topology));
-
-  //for (auto& viewport : info.viewports) {
-  //  this->addViewport(viewport);
-  //}
+  this->addViewport(info.initial_viewport);
+  
   // @JH TODO add more config to parse.
 }
 
