@@ -67,13 +67,10 @@ struct Device {
   auto operator=(Device&& cpy) -> Device&;
   auto score() -> float;
   auto check_support(vk::SurfaceKHR surface) const -> void;
-  inline auto graphics() -> Queue& { return this->queues[GRAPHICS]; }
-  inline auto compute() -> Queue& { return this->queues[COMPUTE]; }
-  inline auto transfer() -> Queue& { return this->queues[TRANSFER]; }
-  inline auto sparse() -> Queue& { return this->queues[SPARSE]; }
-  inline auto allocation_cb() const -> vk::AllocationCallbacks* {
-    return this->allocate_cb;
-  }
+  [[nodiscard]] inline auto graphics() -> Queue& { return this->queues[GRAPHICS]; }
+  [[nodiscard]] inline auto compute() -> Queue& { return this->queues[COMPUTE]; }
+  [[nodiscard]] inline auto transfer() -> Queue& { return this->queues[TRANSFER]; }
+  [[nodiscard]] inline auto sparse() -> Queue& { return this->queues[SPARSE]; }
   using FeaturesChain = vk::StructureChain<vk::DeviceCreateInfo, vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceShaderAtomicFloat2FeaturesEXT, vk::PhysicalDeviceShaderAtomicFloatFeaturesEXT>;
   vk::AllocationCallbacks* allocate_cb;
   vk::Device gpu;
@@ -93,6 +90,9 @@ struct Device {
   float m_score;
 
   private:
+    inline auto check_limits() -> void;
+    inline auto find_memory_info() -> void;
+    inline auto find_queues() -> void;
     inline auto find_queue_families(vk::DispatchLoaderDynamic& dispatch) -> void;
     inline auto make_device(vk::DispatchLoaderDynamic& dispatch) -> void;
     inline auto make_extensions(vk::DispatchLoaderDynamic& dispatch) -> std::vector<const char*>;

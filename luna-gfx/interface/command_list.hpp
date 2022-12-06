@@ -2,6 +2,8 @@
 #include <memory>
 #include <cstddef>
 #include <cstdint>
+#include <chrono>
+#include <future>
 namespace luna {
 namespace gfx {
 class BindGroup;
@@ -24,9 +26,13 @@ class CommandList {
 
     auto begin() -> void;
     auto end() -> void;
-    auto submit() -> void;
-    auto synchronize() -> void;
+    // Returns a future that is signalled when the submit is finished executing on the gpu.
+    [[nodiscard]] auto submit() -> std::future<bool>;
     auto wait_on(const CommandList& cmd) -> void;
+    auto start_time_stamp() -> void;
+    [[nodiscard]] auto end_time_stamp() -> std::future<std::chrono::duration<double, std::nano>>;
+    auto barrier() -> void;
+    auto flush() -> void;
     auto copy(const Buffer& src, const Buffer& dst) -> void;
     auto copy(const Buffer& src, const Buffer& dst, std::size_t amt) -> void;
     auto copy(const Buffer& src, const Image& dst) -> void;

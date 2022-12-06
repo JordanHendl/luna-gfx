@@ -1,6 +1,3 @@
-// This file contains the declarations and definitions for a standard event
-// interface so implementers of the API can convert whatever OS/Library
-// specific types to.
 #pragma once
 #include <functional>
 #include <string>

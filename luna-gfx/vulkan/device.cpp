@@ -29,67 +29,15 @@ Device::Device(gfx::Dlloader& loader, vk::AllocationCallbacks* callback,
   this->find_queue_families(dispatch);
   this->make_device(dispatch);
 
+  this->find_memory_info();
   this->mem_prop = device.getMemoryProperties(dispatch);
-
-  this->mem_heaps.resize(mem_prop.memoryHeapCount);
-  for (auto index = 0u; index < mem_prop.memoryTypeCount; index++) {
-    auto& vk_type = this->mem_prop.memoryTypes[index];
-    auto& vk_heap = this->mem_prop.memoryHeaps[vk_type.heapIndex];
-    auto& heap = this->mem_heaps[vk_type.heapIndex];
-
-    heap.size = vk_heap.size;
-    auto host_visible =
-        vk_type.propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible ||
-        vk_type.propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent;
-
-    auto device_capable =
-        vk_type.propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal;
-
-    if (host_visible) heap.type = HeapType::HostVisible | heap.type;
-    if (device_capable) heap.type = HeapType::GpuOnly | heap.type;
-  }
 
   this->m_dispatch.init(instance.m_instance,
                         reinterpret_cast<PFN_vkGetInstanceProcAddr>(
                             loader.symbol("vkGetInstanceProcAddr")),
                         this->gpu);
 
-  /* Check and see if we found Queues. If not, set to the 'last available queue'
-   * as to not break if people need to use say, a compute queue even though
-   * teeeeeechnically their device doesn't support it.
-   */
-  if (this->queues[GRAPHICS].id != UINT_MAX) {
-    this->queues[GRAPHICS].queue =
-        this->gpu.getQueue(this->queues[GRAPHICS].id, 0, this->m_dispatch);
-  }
-
-  // Set graphics to the defacto default because this queue is guaranteed to be
-  // able to to everything + graphics.
-  auto last_queue = this->queues[GRAPHICS].queue;
-
-  if (this->queues[COMPUTE].id != UINT_MAX) {
-    this->queues[COMPUTE].queue =
-        this->gpu.getQueue(this->queues[COMPUTE].id, 0, this->m_dispatch);
-    last_queue = this->queues[COMPUTE].queue;
-  } else {
-    this->queues[COMPUTE].queue = last_queue;
-  }
-
-  if (this->queues[TRANSFER].id != UINT_MAX) {
-    this->queues[TRANSFER].queue =
-        this->gpu.getQueue(this->queues[TRANSFER].id, 0, this->m_dispatch);
-    last_queue = this->queues[TRANSFER].queue;
-  } else {
-    this->queues[COMPUTE].queue = last_queue;
-  }
-
-  if (this->queues[SPARSE].id != UINT_MAX) {
-    this->queues[SPARSE].queue =
-        this->gpu.getQueue(this->queues[SPARSE].id, 0, this->m_dispatch);
-    last_queue = this->queues[SPARSE].queue;
-  } else {
-    this->queues[SPARSE].queue = last_queue;
-  }
+  this->find_queues();
 }
 
 Device::Device(Device&& mv) { *this = std::move(mv); }
@@ -231,6 +179,15 @@ auto Device::make_extensions(vk::DispatchLoaderDynamic& dispatch) -> std::vector
   return list;
 }
 
+auto Device::check_limits() -> void {
+  if(!this->gpu) return;
+
+  auto all_required_features_supported = 
+  this->properties.limits.timestampComputeAndGraphics;
+
+  LunaAssert(all_required_features_supported, "Limited GPU functionality not found on this graphics card. Sorry dude :(");
+}
+
 auto Device::make_layers(vk::DispatchLoaderDynamic& dispatch) -> std::vector<const char*> {
   std::vector<const char*> list;
   auto available_layers =
@@ -248,6 +205,65 @@ auto Device::make_layers(vk::DispatchLoaderDynamic& dispatch) -> std::vector<con
   }
 
   return list;
+}
+
+auto Device::find_queues() -> void {
+  /* Check and see if we found Queues. If not, set to the 'last available queue'
+   * as to not break if people need to use say, a compute queue even though
+   * teeeeeechnically their device doesn't support it.
+   */
+  if (this->queues[GRAPHICS].id != UINT_MAX) {
+    this->queues[GRAPHICS].queue =
+        this->gpu.getQueue(this->queues[GRAPHICS].id, 0, this->m_dispatch);
+  }
+
+  // Set graphics to the defacto default because this queue is guaranteed to be
+  // able to to everything + graphics.
+  auto last_queue = this->queues[GRAPHICS].queue;
+
+  if (this->queues[COMPUTE].id != UINT_MAX) {
+    this->queues[COMPUTE].queue =
+        this->gpu.getQueue(this->queues[COMPUTE].id, 0, this->m_dispatch);
+    last_queue = this->queues[COMPUTE].queue;
+  } else {
+    this->queues[COMPUTE].queue = last_queue;
+  }
+
+  if (this->queues[TRANSFER].id != UINT_MAX) {
+    this->queues[TRANSFER].queue =
+        this->gpu.getQueue(this->queues[TRANSFER].id, 0, this->m_dispatch);
+    last_queue = this->queues[TRANSFER].queue;
+  } else {
+    this->queues[COMPUTE].queue = last_queue;
+  }
+
+  if (this->queues[SPARSE].id != UINT_MAX) {
+    this->queues[SPARSE].queue =
+        this->gpu.getQueue(this->queues[SPARSE].id, 0, this->m_dispatch);
+    last_queue = this->queues[SPARSE].queue;
+  } else {
+    this->queues[SPARSE].queue = last_queue;
+  }
+}
+
+auto Device::find_memory_info() -> void {
+  this->mem_heaps.resize(mem_prop.memoryHeapCount);
+  for (auto index = 0u; index < mem_prop.memoryTypeCount; index++) {
+    auto& vk_type = this->mem_prop.memoryTypes[index];
+    auto& vk_heap = this->mem_prop.memoryHeaps[vk_type.heapIndex];
+    auto& heap = this->mem_heaps[vk_type.heapIndex];
+
+    heap.size = vk_heap.size;
+    auto host_visible =
+        vk_type.propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible ||
+        vk_type.propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent;
+
+    auto device_capable =
+        vk_type.propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal;
+
+    if (host_visible) heap.type = HeapType::HostVisible | heap.type;
+    if (device_capable) heap.type = HeapType::GpuOnly | heap.type;
+  }
 }
 
 auto Device::check_support(vk::SurfaceKHR surface) const -> void {

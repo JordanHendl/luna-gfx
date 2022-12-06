@@ -113,6 +113,7 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   extensions = this->makeExtensionList();
   validation = this->makeValidationList();
 
+#ifdef LunaGfxDebug
   // Initialize debug instance callback if we have validation layers enabled.
   if (!this->validation.empty()) {
     extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -121,8 +122,10 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   }
 
   info.setEnabledLayerCount(validation.size());
-  info.setEnabledExtensionCount(extensions.size());
   info.setPpEnabledLayerNames(validation.data());
+#endif
+
+  info.setEnabledExtensionCount(extensions.size());
   info.setPpEnabledExtensionNames(extensions.data());
   info.setPApplicationInfo(&app_info);
 
@@ -223,12 +226,10 @@ std::vector<const char*> Instance::makeValidationList() {
 
   this->validation.clear();
   for (const auto& ext : available_layers) {
-    //for (const auto& requested : copy) {
-      if (std::string(&ext.layerName[0]).find("KHRONOS") != std::string::npos) {
-        this->validation.push_back(ext.layerName);
-        list.push_back(this->validation.back().data());
-      }
-    //}
+    if (std::string(&ext.layerName[0]).find("VK_LAYER_KHRONOS_validation") != std::string::npos) {
+      this->validation.push_back(ext.layerName);
+      list.push_back(this->validation.back().data());
+    }
   }
 
   return list;

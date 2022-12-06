@@ -96,8 +96,7 @@ public:
   GraphicsPipeline(const GraphicsPipeline& cpy) = delete;
   ~GraphicsPipeline();
 
-  auto create_bind_group() -> BindGroup;
-  auto update_viewport(Viewport view) -> void;
+  [[nodiscard]] auto create_bind_group() -> BindGroup;
   [[nodiscard]] inline auto handle() const {return this->m_handle;}
   [[nodiscard]] inline auto info() const {return this->m_info;}
   auto operator=(GraphicsPipeline&& mv) -> GraphicsPipeline& {this->m_handle = mv.m_handle; mv.m_handle = -1; this->m_info = mv.m_info; return *this;};

@@ -32,15 +32,21 @@ namespace gfx {
     vulkan::end_command_buffer(this->m_handle);
   }
 
-  auto CommandList::submit() -> void {
+  auto CommandList::submit() -> std::future<bool> {
     LunaAssert(this->m_handle >= 0, "Unable to submit an invalid command buffer.");
     vulkan::submit_command_buffer(this->m_handle);
+    auto wait_func = [](std::int32_t handle) {
+      vulkan::synchronize_cmd(handle);
+      return true;
+    };
+
+    return std::async(std::launch::deferred, wait_func, this->m_handle);
   }
 
-  auto CommandList::synchronize() -> void {
-    LunaAssert(this->m_handle >= 0, "Unable to synchronize an invalid command buffer.");
-    vulkan::synchronize_cmd(this->m_handle);
-  }
+  //auto CommandList::synchronize() -> void {
+  //  LunaAssert(this->m_handle >= 0, "Unable to synchronize an invalid command buffer.");
+  //  vulkan::synchronize_cmd(this->m_handle);
+  //}
 
   auto CommandList::wait_on(const CommandList& cmd) -> void {
     LunaAssert(this->m_handle >= 0, "Unable to tell an invalid command buffer to wait on another.");
@@ -85,6 +91,21 @@ namespace gfx {
   auto CommandList::draw(const Buffer& vertices, std::size_t instance_count) -> void {
     LunaAssert(this->m_handle >= 0, "Unable to record a draw operation as an invalid command buffer.");
     LunaAssert(false, "Not yet implemented");
+  }
+ 
+  auto CommandList::start_time_stamp() -> void {
+    LunaAssert(this->m_handle >= 0, "Unable to record a time stamp start operation as an invalid command buffer.");
+    vulkan::start_timestamp(this->m_handle, vk::PipelineStageFlagBits::eTopOfPipe);
+  }
+
+  auto CommandList::end_time_stamp() -> std::future<std::chrono::duration<double, std::nano>> {
+    LunaAssert(this->m_handle >= 0, "Unable to end a time stamp operation as an invalid command buffer.");
+    vulkan::end_timestamp(this->m_handle, vk::PipelineStageFlagBits::eBottomOfPipe);
+    auto read_func = [](std::int32_t handle) {
+      return vulkan::read_timestamp(handle);
+    };
+
+    return std::async(std::launch::deferred, read_func, this->m_handle);
   }
 }
 }

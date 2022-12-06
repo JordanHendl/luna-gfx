@@ -42,6 +42,7 @@ struct CommandBuffer {
   vk::Fence fence = {};
   vk::Queue queue = {};
   vk::CommandPool pool = {};
+  vk::QueryPool timestamp_pool = {};
   int gpu = -1;
   int32_t rp_id = -1;
   

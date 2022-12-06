@@ -17,9 +17,5 @@ namespace gfx {
     tmp.m_handle = luna::vulkan::create_bind_group(this->m_handle);
     return tmp;
   }
-
-  auto GraphicsPipeline::update_viewport(Viewport view) -> void {
-    luna::vulkan::update_view_port(this->m_handle, view);
-  }
 }
 }

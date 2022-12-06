@@ -10,6 +10,8 @@
 #include "luna-gfx/interface/pipeline.hpp"
 #include "luna-gfx/interface/command_list.hpp"
 #include "luna-gfx/vulkan/global_resources.hpp"
+#include <chrono>
+#include <array>
 namespace luna {
 namespace vulkan {
 inline auto convert(luna::gfx::ImageFormat fmt) -> vk::Format {
@@ -110,14 +112,58 @@ inline auto create_cmd(int gpu, gfx::Queue type = gfx::Queue::All, CommandBuffer
   return index;
 }
 
+inline auto synchronize_cmd(int32_t cmd_id) -> void {
+  auto& cmd = luna::vulkan::global_resources().cmds[cmd_id];
+  auto& gpu = luna::vulkan::global_resources().devices[cmd.gpu];
+  
+  if(cmd.fence && cmd.signaled) {
+    error(gpu.gpu.waitForFences(1, &cmd.fence, true, UINT64_MAX, gpu.m_dispatch));
+    error(gpu.gpu.resetFences(1, &cmd.fence, gpu.m_dispatch));
+    cmd.signaled = false;
+  }
+}
+
 inline auto destroy_cmd(int32_t handle) -> void {
   auto& res = global_resources();
   auto& cmd = res.cmds[handle];
   auto& gpu = res.devices[cmd.gpu];
+  if(cmd.signaled) synchronize_cmd(handle);
+  if(cmd.timestamp_pool) gpu.gpu.destroy(cmd.timestamp_pool, gpu.allocate_cb, gpu.m_dispatch);
   cmd.signal_sems = destroy_semaphores(cmd.gpu, cmd.signal_sems);
   gpu.gpu.destroy(cmd.fence, gpu.allocate_cb, gpu.m_dispatch);
   gpu.gpu.freeCommandBuffers(cmd.pool, 1, &cmd.cmd, gpu.m_dispatch);
   cmd.cmd = nullptr;
+}
+
+inline auto start_timestamp(int32_t cmd_handle, vk::PipelineStageFlagBits stage) -> void {
+  auto& cmd = luna::vulkan::global_resources().cmds[cmd_handle];
+  auto& gpu = luna::vulkan::global_resources().devices[cmd.gpu];
+  constexpr auto cNumQueries = 2u;
+  auto info = vk::QueryPoolCreateInfo();
+  info.setQueryType(vk::QueryType::eTimestamp);
+  info.setQueryCount(cNumQueries);
+  if(!cmd.timestamp_pool) 
+    cmd.timestamp_pool = error(gpu.gpu.createQueryPool(info, gpu.allocate_cb, gpu.m_dispatch));
+  cmd.cmd.resetQueryPool(cmd.timestamp_pool, 0, cNumQueries, gpu.m_dispatch);
+  cmd.cmd.writeTimestamp(stage, cmd.timestamp_pool, 0, gpu.m_dispatch);
+}
+
+inline auto end_timestamp(int32_t cmd_handle, vk::PipelineStageFlagBits stage) -> void {
+  auto& cmd = luna::vulkan::global_resources().cmds[cmd_handle];
+  auto& gpu = luna::vulkan::global_resources().devices[cmd.gpu];
+  cmd.cmd.writeTimestamp(stage, cmd.timestamp_pool, 1, gpu.m_dispatch);
+}
+
+inline auto read_timestamp(int32_t cmd_handle) -> std::chrono::duration<double, std::nano> {
+  static_assert(sizeof(double) == 8);
+  constexpr auto flags = vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait;
+  auto& cmd = luna::vulkan::global_resources().cmds[cmd_handle];
+  auto& gpu = luna::vulkan::global_resources().devices[cmd.gpu];
+  auto tmp_storage = std::array<int64_t, 2> {0, 0};
+  error(gpu.gpu.getQueryPoolResults(cmd.timestamp_pool, 0, 2, sizeof(double) * 2, &tmp_storage[0], sizeof(double), flags, gpu.m_dispatch));
+
+  auto duration = static_cast<double>(tmp_storage[1] - tmp_storage[0]) * gpu.properties.limits.timestampPeriod;
+  return std::chrono::duration<double, std::nano>(duration);
 }
 
 inline auto submit_command_buffer(int32_t handle) -> void {
@@ -278,17 +324,6 @@ inline auto copy_buffer_to_image(int32_t cmd_id, int32_t buffer_id, int32_t imag
     transition_image(cmd_id, image_id, dst_old_layout);
 }
 
-inline auto synchronize_cmd(int32_t cmd_id) -> void {
-  auto& cmd = luna::vulkan::global_resources().cmds[cmd_id];
-  auto& gpu = luna::vulkan::global_resources().devices[cmd.gpu];
-  
-  if(cmd.fence && cmd.signaled) {
-    error(gpu.gpu.waitForFences(1, &cmd.fence, true, UINT64_MAX, gpu.m_dispatch));
-    error(gpu.gpu.resetFences(1, &cmd.fence, gpu.m_dispatch));
-    cmd.signaled = false;
-  }
-}
-
 inline auto map_buffer(int32_t buffer_id, void** ptr) -> void {
   auto& res = global_resources();
   auto& buffer = res.buffers[buffer_id];
@@ -341,10 +376,12 @@ inline auto destroy_buffer(std::int32_t handle) -> void {
   buffer.size = 0;
   buffer.alloc = nullptr;
 }
+
 inline auto standard_image_usage() {
   return vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
   vk::ImageUsageFlagBits::eSampled;
 }
+
 inline auto create_sampler(luna::vulkan::Device& device, luna::vulkan::Image& img) {
   const auto max_anisotropy = 16.0f;
   auto info = vk::SamplerCreateInfo();
@@ -364,7 +401,7 @@ inline auto create_sampler(luna::vulkan::Device& device, luna::vulkan::Image& im
   info.setMinLod(0.0f);
   info.setMaxLod(0.0f);
 
-  img.sampler = luna::vulkan::error(device.gpu.createSampler(info, device.allocation_cb(), device.m_dispatch));
+  img.sampler = luna::vulkan::error(device.gpu.createSampler(info, device.allocate_cb, device.m_dispatch));
 }
 
 inline auto create_image_view(luna::vulkan::Device& device, luna::vulkan::Image& img) -> void {
@@ -561,10 +598,6 @@ inline auto destroy_pipeline(int32_t handle) -> void {
 
 inline auto create_bind_group(int32_t pipe_handle) -> int32_t {
   return -1;
-}
-
-inline auto update_view_port(int32_t pipeline_handle, gfx::Viewport viewport) -> void {
-
 }
 }
 }

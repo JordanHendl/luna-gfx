@@ -11,6 +11,11 @@
 #include <array>
 #include <vector>
 #include <cstdint>
+#include <ratio>
+
+template<typename T>
+constexpr auto in_range(T min, T max, T val) {return min < val && val < max;}
+
 namespace luna::interface_test {
 TEST(Interface, CreateBuffer) {
   constexpr auto cGPU = 0;
@@ -167,6 +172,32 @@ TEST(Interface, CreateCommandBuffer) {
   }
 
   EXPECT_LT(cmd.handle(), 0);
+}
+
+//TEST(Interface, CommandBufferBarrier) {
+//
+//}
+
+TEST(Interface, CommandBufferTiming) {
+  constexpr auto cGPU = 0;
+  constexpr auto cSize = 1024;
+  constexpr auto cNumIterations = 2048;
+  auto buf_a = gfx::Buffer(cGPU, cSize);
+  auto buf_b = gfx::Buffer(cGPU, cSize);
+  auto cmd = gfx::CommandList(cGPU);
+  cmd.begin();
+  cmd.start_time_stamp();
+  for(auto index = 0; index < cNumIterations; index++) {
+    cmd.copy(buf_a, buf_b);
+  }
+  auto duration = cmd.end_time_stamp();
+  cmd.end();
+  auto wait = cmd.submit();
+
+  duration.wait();
+  auto time = duration.get();
+  auto time_in_millis = std::chrono::duration<double, std::milli>(time);
+  EXPECT_TRUE(in_range(0.0, 1.0, time_in_millis.count()));
 }
 }
 

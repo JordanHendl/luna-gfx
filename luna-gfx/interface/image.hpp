@@ -26,9 +26,9 @@ class Image {
   public:
     Image() {this->m_handle = -1;}
     Image(ImageInfo info, const unsigned char* initial_data = nullptr);
-    ~Image();
     Image(Image&& mv) = default;
     Image(const Image& cpy) = delete;
+    ~Image();
 
     auto operator=(Image&& mv) -> Image& = default;
     auto operator=(const Image& cpy) -> Image& = delete;

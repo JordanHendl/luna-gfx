@@ -1,17 +1,23 @@
 cmake_minimum_required(VERSION 3.13)
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-include(Sanitize)
-include(CompilerOptions)
-
 project(luna-gfx)
+
 option(BuildBenchmarks "Whether or not to build benchmarks for this project." ON)
 option(BuildTests "Whether or not to build tests for this project." ON)
+option(RunTests "Whether or not to run tests after building this project." ON)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 enable_testing()
+include(Sanitize)
+include(CompilerOptions)
+include(RunTest)
+
 
 AddCompilerOptions() # From cmake/CompilerOptions.cmake
 AddSanitizers() # From cmake/Sanitize.cmake
+
+if(RunTests)
+  RunTestsAfterBuild()
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
