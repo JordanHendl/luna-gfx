@@ -40,13 +40,8 @@ namespace gfx {
       return true;
     };
 
-    return std::async(std::launch::deferred, wait_func, this->m_handle);
+    return std::async(std::launch::async, wait_func, this->m_handle);
   }
-
-  //auto CommandList::synchronize() -> void {
-  //  LunaAssert(this->m_handle >= 0, "Unable to synchronize an invalid command buffer.");
-  //  vulkan::synchronize_cmd(this->m_handle);
-  //}
 
   auto CommandList::wait_on(const CommandList& cmd) -> void {
     LunaAssert(this->m_handle >= 0, "Unable to tell an invalid command buffer to wait on another.");

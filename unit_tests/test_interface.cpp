@@ -12,7 +12,7 @@
 #include <vector>
 #include <cstdint>
 #include <ratio>
-
+#include <algorithm>
 template<typename T>
 constexpr auto in_range(T min, T max, T val) {return min < val && val < max;}
 
@@ -174,14 +174,42 @@ TEST(Interface, CreateCommandBuffer) {
   EXPECT_LT(cmd.handle(), 0);
 }
 
-//TEST(Interface, CommandBufferBarrier) {
-//
-//}
+TEST(Interface, CommandBufferCopyBufferToBuffer) {
+  constexpr auto cGPU = 0;
+  constexpr auto cSize = 1024;
+  constexpr auto cExpectedValue = 255;
+  constexpr auto cBaselineValue = 0;
+  auto buf_a = gfx::Buffer(cGPU, cSize, gfx::Buffer::Type::CPUVisible);
+  auto buf_b = gfx::Buffer(cGPU, cSize, gfx::Buffer::Type::CPUVisible);
+  auto cmd = gfx::CommandList(cGPU);
+
+  {
+    auto container_a = buf_a.get_mapped_container<unsigned char>();
+    auto container_b = buf_b.get_mapped_container<unsigned char>();
+    std::fill(container_a.begin(), container_a.end(), cExpectedValue);
+    std::fill(container_b.begin(), container_b.end(), cBaselineValue);
+  }
+
+  cmd.begin();
+  cmd.copy(buf_a, buf_b);
+  cmd.end();
+  auto sync = cmd.submit();
+  sync.wait();
+  
+  {
+    auto container_a = buf_a.get_mapped_container<unsigned char>();
+    auto container_b = buf_b.get_mapped_container<unsigned char>();
+    for(auto& a : container_a) {EXPECT_EQ(a, cExpectedValue);}
+    for(auto& a : container_b) {EXPECT_EQ(a, cExpectedValue);}
+  }
+}
 
 TEST(Interface, CommandBufferTiming) {
   constexpr auto cGPU = 0;
   constexpr auto cSize = 1024;
   constexpr auto cNumIterations = 2048;
+  constexpr auto cMinTimeMillis = 0.05;
+  constexpr auto cMaxTimeMillis = 1.00;
   auto buf_a = gfx::Buffer(cGPU, cSize);
   auto buf_b = gfx::Buffer(cGPU, cSize);
   auto cmd = gfx::CommandList(cGPU);
@@ -197,7 +225,7 @@ TEST(Interface, CommandBufferTiming) {
   duration.wait();
   auto time = duration.get();
   auto time_in_millis = std::chrono::duration<double, std::milli>(time);
-  EXPECT_TRUE(in_range(0.0, 1.0, time_in_millis.count()));
+  EXPECT_TRUE(in_range(cMinTimeMillis, cMaxTimeMillis, time_in_millis.count()));
 }
 }
 

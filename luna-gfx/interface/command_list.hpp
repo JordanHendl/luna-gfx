@@ -26,7 +26,7 @@ class CommandList {
 
     auto begin() -> void;
     auto end() -> void;
-    // Returns a future that is signalled when the submit is finished executing on the gpu.
+    // Returns a future that is ready when the submit is finished executing on the gpu.
     [[nodiscard]] auto submit() -> std::future<bool>;
     auto wait_on(const CommandList& cmd) -> void;
     auto start_time_stamp() -> void;
