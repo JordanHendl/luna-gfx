@@ -2,7 +2,7 @@
 #include "luna-gfx/vulkan/utils/helper_functions.hpp"
 namespace luna {
 namespace gfx {
-  GraphicsPipeline::GraphicsPipeline(const RenderPass& pass, GraphicsPipelineInfo info) {
+  GraphicsPipeline::GraphicsPipeline(const RenderPass& pass, GraphicsPipelineInfo info, int) {
     this->m_handle = luna::vulkan::create_graphics_pipeline(pass.handle(), info);
     this->m_info = info;
   }

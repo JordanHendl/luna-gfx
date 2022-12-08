@@ -3,6 +3,7 @@ set(luna_gfx_interface_sources buffer.cpp
                                image.cpp
                                render_pass.cpp
                                pipeline.cpp
+                               bind_group.cpp
                                window.cpp
                                command_list.cpp
                                event.cpp

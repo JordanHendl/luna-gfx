@@ -135,6 +135,61 @@ inline auto destroy_cmd(int32_t handle) -> void {
   cmd.cmd = nullptr;
 }
 
+inline auto cmd_start_render_pass(int32_t cmd_handle, int32_t rp_handle, size_t framebuffer_id) -> void {
+  static const auto clear_colors = vk::ClearValue();
+  auto& res = global_resources();
+  auto& cmd = res.cmds[cmd_handle];
+  auto& gpu = res.devices[cmd.gpu];
+  auto& rp = res.render_passes[rp_handle];
+
+  auto info = vk::RenderPassBeginInfo();
+  auto subpass = vk::SubpassContents::eInline;
+  info.setRenderArea(rp.area());
+  info.setRenderPass(rp.pass());
+  info.setClearValueCount(1);
+  info.setPClearValues(&clear_colors);
+  info.setFramebuffer(rp.framebuffers()[framebuffer_id]);
+  cmd.cmd.beginRenderPass(info, subpass, gpu.m_dispatch);
+}
+
+inline auto cmd_end_render_pass(int32_t cmd_handle) -> void {
+  auto& res = global_resources();
+  auto& cmd = res.cmds[cmd_handle];
+  auto& gpu = res.devices[cmd.gpu];
+  cmd.cmd.endRenderPass(gpu.m_dispatch);
+}
+
+inline auto cmd_bind_descriptor(int32_t cmd_handle, int32_t desc_handle) -> void {
+  auto& res = global_resources();
+  auto& cmd = res.cmds[cmd_handle];
+  auto& gpu = res.devices[cmd.gpu];
+  auto& desc = res.descriptors[desc_handle];
+
+  auto& pipeline = desc.pipeline();
+  auto vk_pipe = pipeline.pipeline();
+  auto layout = pipeline.layout();
+  const auto bind_point = pipeline.graphics() ? vk::PipelineBindPoint::eGraphics
+                                              : vk::PipelineBindPoint::eCompute;
+
+  cmd.cmd.bindPipeline(bind_point, vk_pipe, gpu.m_dispatch);
+  if (desc.set())
+    cmd.cmd.bindDescriptorSets(bind_point, layout, 0, 1, &desc.set(), 0, nullptr, gpu.m_dispatch);
+}
+
+inline auto cmd_buffer_draw(int32_t cmd_handle, int32_t vertices_id, size_t vertex_count, size_t instance_count) -> void {
+  auto& res = global_resources();
+  auto& cmd = res.cmds[cmd_handle];
+  auto& gpu = res.devices[cmd.gpu];
+  auto& vertices = res.buffers[vertices_id];
+
+  auto offset = vk::DeviceSize(0);
+  cmd.cmd.bindVertexBuffers(0, 1, &vertices.buffer, &offset, gpu.m_dispatch);
+  cmd.cmd.draw(vertex_count, instance_count, 0, 0, gpu.m_dispatch);
+}
+
+inline auto cmd_buffer_draw(int32_t cmd_handle, int32_t vertices, size_t vert_count, int32_t indices,  size_t idx_count, size_t instance_count) -> void {
+}
+
 inline auto start_timestamp(int32_t cmd_handle, vk::PipelineStageFlagBits stage) -> void {
   auto& cmd = luna::vulkan::global_resources().cmds[cmd_handle];
   auto& gpu = luna::vulkan::global_resources().devices[cmd.gpu];
@@ -597,7 +652,9 @@ inline auto destroy_pipeline(int32_t handle) -> void {
 }
 
 inline auto create_bind_group(int32_t pipe_handle) -> int32_t {
-  return -1;
-}
+  auto& res = global_resources();
+  auto& pipeline = res.pipelines[pipe_handle];
+  return pipeline.descriptor();
+} 
 }
 }

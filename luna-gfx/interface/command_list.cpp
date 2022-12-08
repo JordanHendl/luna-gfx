@@ -22,6 +22,36 @@ namespace gfx {
     this->m_handle = -1;
   }
 
+  auto CommandList::viewport(const Viewport& view) -> void {
+    LunaAssert(this->m_handle >= 0, "Unable to begin an invalid command buffer.");
+    auto& res = vulkan::global_resources();
+    auto& cmd = res.cmds[this->m_handle];
+    auto& gpu = res.devices[cmd.gpu];
+
+    auto vp = vk::Viewport();
+    auto sc = vk::Rect2D();
+
+    vp.width = view.width;
+    vp.height = view.height;
+    vp.minDepth = 0;
+    vp.maxDepth = view.max_depth;
+    sc.extent.width = view.width;
+    sc.extent.height = view.height;
+    cmd.cmd.setViewport(0, vp, gpu.m_dispatch);
+    cmd.cmd.setScissor(0, sc, gpu.m_dispatch);
+  }
+
+  auto CommandList::start_draw(const RenderPass& pass) -> void {
+    LunaAssert(this->m_handle >= 0, "Unable to begin an invalid command buffer.");
+    vulkan::cmd_start_render_pass(this->m_handle, pass.handle(), 0);
+  }
+
+  auto CommandList::end_draw() -> void {
+    LunaAssert(this->m_handle >= 0, "Unable to begin an invalid command buffer.");
+    vulkan::cmd_end_render_pass(this->m_handle);
+  }
+
+
   auto CommandList::begin() -> void {
     LunaAssert(this->m_handle >= 0, "Unable to begin an invalid command buffer.");
     vulkan::begin_command_buffer(this->m_handle);
@@ -48,17 +78,17 @@ namespace gfx {
     LunaAssert(false, "Not yet implemented");
   }
 
-  auto CommandList::copy(const Buffer& src, const Buffer& dst) -> void {
+  auto CommandList::copy(const MemoryBuffer& src, const MemoryBuffer& dst) -> void {
     LunaAssert(this->m_handle >= 0, "Unable to record a copy buffers operation as an invalid command buffer.");
     this->copy(src, dst, std::min(src.size(), dst.size()));
   }
 
-  auto CommandList::copy(const Buffer& src, const Buffer& dst, std::size_t amt) -> void {
+  auto CommandList::copy(const MemoryBuffer& src, const MemoryBuffer& dst, std::size_t amt) -> void {
     LunaAssert(this->m_handle >= 0, "Unable to record a copy buffers operation as an invalid command buffer.");
     vulkan::copy_buffer_to_buffer(this->m_handle, src.handle(), dst.handle(), amt);
   }
 
-  auto CommandList::copy(const Buffer& src, const Image& dst) -> void {
+  auto CommandList::copy(const MemoryBuffer& src, const Image& dst) -> void {
     LunaAssert(this->m_handle >= 0, "Unable to record a copy operation as an invalid command buffer.");
     vulkan::copy_buffer_to_image(this->m_handle, src.handle(), dst.handle());
   }
@@ -68,24 +98,24 @@ namespace gfx {
     LunaAssert(false, "Not yet implemented");
   }
 
-  auto CommandList::copy(const Image& src, const Buffer& dst) -> void {
+  auto CommandList::copy(const Image& src, const MemoryBuffer& dst) -> void {
     LunaAssert(this->m_handle >= 0, "Unable to record a copy operation as an invalid command buffer.");
     LunaAssert(false, "Not yet implemented");
   }
 
   auto CommandList::bind(const BindGroup& bind_group) -> void {
     LunaAssert(this->m_handle >= 0, "Unable to record a draw operation as an invalid command buffer.");
-    LunaAssert(false, "Not yet implemented");
+    luna::vulkan::cmd_bind_descriptor(this->m_handle, bind_group.handle());
   }
 
-  auto CommandList::draw(const Buffer& vertices, const Buffer& indices, std::size_t instance_count) -> void {
+  auto CommandList::draw(const MemoryBuffer& vertices, std::size_t num_verts, const MemoryBuffer& indices, std::size_t num_indices, std::size_t instance_count) -> void {
     LunaAssert(this->m_handle >= 0, "Unable to record a draw operation as an invalid command buffer.");
-    LunaAssert(false, "Not yet implemented");
+    luna::vulkan::cmd_buffer_draw(this->m_handle, vertices.handle(), num_verts, indices.handle(), num_indices, instance_count);
   }
 
-  auto CommandList::draw(const Buffer& vertices, std::size_t instance_count) -> void {
+  auto CommandList::draw(const MemoryBuffer& vertices, std::size_t num_verts, std::size_t instance_count) -> void {
     LunaAssert(this->m_handle >= 0, "Unable to record a draw operation as an invalid command buffer.");
-    LunaAssert(false, "Not yet implemented");
+    luna::vulkan::cmd_buffer_draw(this->m_handle, vertices.handle(), num_verts, instance_count);
   }
  
   auto CommandList::start_time_stamp() -> void {

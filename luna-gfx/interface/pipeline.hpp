@@ -91,18 +91,20 @@ struct ComputePipelineInfo {
 class GraphicsPipeline {
 public:
   GraphicsPipeline() {this->m_handle = -1;}
-  GraphicsPipeline(const RenderPass& pass, GraphicsPipelineInfo info);
-  GraphicsPipeline(GraphicsPipeline&& mv) {*this = std::move(mv);};
+  GraphicsPipeline(const RenderPass& pass, GraphicsPipelineInfo info, int subpass = 0);
+  GraphicsPipeline(GraphicsPipeline&& mv) {*this = std::move(mv);}
   GraphicsPipeline(const GraphicsPipeline& cpy) = delete;
   ~GraphicsPipeline();
 
   [[nodiscard]] auto create_bind_group() -> BindGroup;
+  [[nodiscard]] auto render_pass() -> const RenderPass& {return this->m_rp;}
   [[nodiscard]] inline auto handle() const {return this->m_handle;}
   [[nodiscard]] inline auto info() const {return this->m_info;}
   auto operator=(GraphicsPipeline&& mv) -> GraphicsPipeline& {this->m_handle = mv.m_handle; mv.m_handle = -1; this->m_info = mv.m_info; return *this;};
   auto operator=(const GraphicsPipeline& cpy) -> GraphicsPipeline& = delete;
     private:
       std::int32_t m_handle;
+      RenderPass m_rp;
       GraphicsPipelineInfo m_info;
   };
 }

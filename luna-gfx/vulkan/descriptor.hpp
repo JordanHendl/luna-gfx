@@ -1,12 +1,13 @@
 #pragma once
+#include "luna-gfx/vulkan/vulkan_defines.hpp"
+#include "luna-gfx/common/shader.hpp"
+#include "luna-gfx/vulkan/data_types.hpp"
+#include "luna-gfx/vulkan/device.hpp"
 #include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vulkan/vulkan.hpp>
-#include "luna-gfx/common/shader.hpp"
-#include "luna-gfx/vulkan/data_types.hpp"
-#include "luna-gfx/vulkan/device.hpp"
 namespace luna {
 namespace vulkan {
 constexpr auto MAX_DESCRIPTORS = 4096;
@@ -45,10 +46,10 @@ class Descriptor {
   auto operator=(Descriptor&& desc) -> Descriptor&;
   auto initialize(const DescriptorPool& pool) -> void;
   auto reset() -> void;
-  auto bind(std::string_view name, const Image& image) -> void;
+  auto bind(std::string_view name, const Image& image) -> bool;
   auto bind(std::string_view name, const Image** images, unsigned count)
-      -> void;
-  auto bind(std::string_view name, const Buffer& buffer) -> void;
+      -> bool;
+  auto bind(std::string_view name, const Buffer& buffer) -> bool;
   auto initialized() const -> bool { return this->m_set; }
   auto pipeline() const -> const Pipeline& { return *this->m_pipeline; }
   auto set() -> vk::DescriptorSet& { return this->m_set; }

@@ -145,19 +145,19 @@ auto Descriptor::initialize(const DescriptorPool& pool) -> void {
   info.setDescriptorPool(pool.m_pool);
   info.setPSetLayouts(layouts);
   info.setDescriptorSetCount(1);
+  this->m_device = pool.m_device;
+  this->m_pipeline = pool.m_pipeline;
 
   if (pool.m_pool) {
     auto device = pool.m_device->gpu;
     auto& dispatch = pool.m_device->m_dispatch;
     auto result = error(device.allocateDescriptorSets(info, dispatch));
-    this->m_device = pool.m_device;
-    this->m_pipeline = pool.m_pipeline;
     this->m_parent_map = pool.m_map;
     this->m_set = result[0];
   }
 }
 
-auto Descriptor::bind(std::string_view name, const Buffer& buffer) -> void {
+auto Descriptor::bind(std::string_view name, const Buffer& buffer) -> bool {
   if (this->m_parent_map) {
     const auto iter = this->m_parent_map->find(std::string(name));
     auto info = vk::DescriptorBufferInfo();
@@ -178,11 +178,13 @@ auto Descriptor::bind(std::string_view name, const Buffer& buffer) -> void {
       auto device = this->m_device->gpu;
       auto& dispatch = this->m_device->m_dispatch;
       device.updateDescriptorSets(1, &write, 0, nullptr, dispatch);
+      return true;
     }
   }
+  return false;
 }
 
-auto Descriptor::bind(std::string_view name, const Image& image) -> void {
+auto Descriptor::bind(std::string_view name, const Image& image) -> bool {
   if (this->m_parent_map) {
     const auto iter = this->m_parent_map->find(std::string(name));
     vk::DescriptorImageInfo info;
@@ -203,14 +205,14 @@ auto Descriptor::bind(std::string_view name, const Image& image) -> void {
       auto device = this->m_device->gpu;
       auto& dispatch = this->m_device->m_dispatch;
       device.updateDescriptorSets(1, &write, 0, nullptr, dispatch);
-    } else {
-      LunaAssert(true, "Attempting to bind something that doesn't exist.");
+      return true;
     }
   }
+  return false;
 }
 
 auto Descriptor::bind(std::string_view name, const Image** images,
-                      unsigned count) -> void {
+                      unsigned count) -> bool {
   if (this->m_parent_map) {
     const auto iter = this->m_parent_map->find(std::string(name));
     unsigned amt;
@@ -234,13 +236,13 @@ auto Descriptor::bind(std::string_view name, const Image** images,
       write.setDescriptorCount(amt);
       write.setPImageInfo(infos.data());
 
-      //auto device = this->m_device->gpu;
-      //auto& dispatch = this->m_device->gpu;
-      //device.updateDescriptorSets(1, &write, 0, nullptr, dispatch);
-    } else {
-      LunaAssert(true, "Attempting to bind something that doesn't exist.");
+      auto device = this->m_device->gpu;
+      auto& dispatch = this->m_device->m_dispatch;
+      device.updateDescriptorSets(1, &write, 0, nullptr, dispatch);
+      return true;
     }
   }
+  return false;
 }
 
 auto DescriptorPool::make() -> int32_t { 

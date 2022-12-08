@@ -13,6 +13,14 @@
 #include <cstdint>
 #include <ratio>
 #include <algorithm>
+#include <array>
+
+struct vec3 {
+  float x;
+  float y;
+  float z;
+};
+
 template<typename T>
 constexpr auto in_range(T min, T max, T val) {return min < val && val < max;}
 
@@ -20,36 +28,16 @@ namespace luna::interface_test {
 TEST(Interface, CreateBuffer) {
   constexpr auto cGPU = 0;
   constexpr auto cBufferSize = 1024u;
-  auto buffer = luna::gfx::Buffer(cGPU, cBufferSize);
+  auto buffer = luna::gfx::MemoryBuffer(cGPU, cBufferSize);
   EXPECT_GE(buffer.size(), cBufferSize);
 }
 
-TEST(Interface, MapBuffer)  {
-  float* tmp = nullptr;
+TEST(Interface, CreateVector) {
   constexpr auto cGPU = 0;
-  constexpr auto cBufferSize = 1024u * sizeof(float);
-  auto buffer = luna::gfx::Buffer(cGPU, cBufferSize);
-  buffer.map(&tmp);
-  EXPECT_TRUE(tmp != nullptr);
-  buffer.unmap();
-}
-
-TEST(Interface, InitializeBufferWithData) {
-  float* tmp = nullptr;
-  constexpr auto cGPU = 0;
-  constexpr auto cNumElements = 1024u;
-  constexpr auto cBufferSize = cNumElements * sizeof(float);
-  constexpr auto cConstantValue = 1337.f;
-  const auto v = std::vector<float>(1024, cConstantValue);
-
-  auto buffer = luna::gfx::Buffer(cGPU, cBufferSize);
-  buffer.upload_data(v.data(), v.size());
-  buffer.map(&tmp);
-  EXPECT_TRUE(tmp != nullptr);
-  for(auto index = 0u; index < cNumElements; index++) {
-    EXPECT_FLOAT_EQ(tmp[index], cConstantValue);
-  }
-  buffer.unmap();
+  constexpr auto cNumElements = 1024;
+  auto vec = gfx::Vector<float>(cGPU, cNumElements);
+  EXPECT_EQ(vec.size(), cNumElements);
+  EXPECT_GE(vec.handle(), 0); 
 }
 
 TEST(Interface, CreateImage) {
@@ -174,13 +162,65 @@ TEST(Interface, CreateCommandBuffer) {
   EXPECT_LT(cmd.handle(), 0);
 }
 
+TEST(Interface, VectorResize) {
+  constexpr auto cGPU = 0;
+  constexpr auto cNumElements = 1024;
+  constexpr auto cNewNumElements = 5000;
+  auto vec = gfx::Vector<float>(cGPU, cNumElements);
+  EXPECT_EQ(vec.size(), cNumElements);
+  vec.resize(cNewNumElements);
+  EXPECT_EQ(vec.size(), cNewNumElements);
+}
+
+TEST(Interface, MapBuffer)  {
+  float* tmp = nullptr;
+  constexpr auto cGPU = 0;
+  constexpr auto cBufferSize = 1024u * sizeof(float);
+  auto buffer = luna::gfx::MemoryBuffer(cGPU, cBufferSize);
+  buffer.map(&tmp);
+  EXPECT_TRUE(tmp != nullptr);
+  buffer.unmap();
+
+  {
+    auto container = buffer.get_mapped_container<char>();
+    EXPECT_TRUE(container.begin() != nullptr);
+    EXPECT_TRUE(container.data() != nullptr);
+    EXPECT_EQ(container.size(), buffer.size());
+  }
+
+  {
+    auto container = buffer.get_mapped_container<float>();
+    EXPECT_TRUE(container.begin() != nullptr);
+    EXPECT_TRUE(container.data() != nullptr);
+    EXPECT_EQ(container.size(), buffer.size() / sizeof(float));
+  }
+}
+
+TEST(Interface, InitializeBufferWithData) {
+  float* tmp = nullptr;
+  constexpr auto cGPU = 0;
+  constexpr auto cNumElements = 1024u;
+  constexpr auto cBufferSize = cNumElements * sizeof(float);
+  constexpr auto cConstantValue = 1337.f;
+  const auto v = std::vector<float>(1024, cConstantValue);
+
+  auto buffer = luna::gfx::MemoryBuffer(cGPU, cBufferSize);
+  buffer.upload(v.data(), v.size());
+  buffer.map(&tmp);
+  EXPECT_TRUE(tmp != nullptr);
+  for(auto index = 0u; index < cNumElements; index++) {
+    EXPECT_FLOAT_EQ(tmp[index], cConstantValue);
+  }
+  buffer.unmap();
+}
+
 TEST(Interface, CommandBufferCopyBufferToBuffer) {
   constexpr auto cGPU = 0;
   constexpr auto cSize = 1024;
   constexpr auto cExpectedValue = 255;
   constexpr auto cBaselineValue = 0;
-  auto buf_a = gfx::Buffer(cGPU, cSize, gfx::Buffer::Type::CPUVisible);
-  auto buf_b = gfx::Buffer(cGPU, cSize, gfx::Buffer::Type::CPUVisible);
+  auto buf_a = gfx::MemoryBuffer(cGPU, cSize, gfx::MemoryType::CPUVisible);
+  auto buf_b = gfx::MemoryBuffer(cGPU, cSize, gfx::MemoryType::CPUVisible);
   auto cmd = gfx::CommandList(cGPU);
 
   {
@@ -204,14 +244,69 @@ TEST(Interface, CommandBufferCopyBufferToBuffer) {
   }
 }
 
+TEST(Interface, CommandBufferDraw) {
+  /** Lots of work to draw something! Maybe make an object to make this go faster to write?
+   * 
+   * ... but at the same time, this gives you a lot of fine-grain detail. So idk.
+   */
+  constexpr auto cWidth = 1280u;
+  constexpr auto cHeight = 1024u;
+  constexpr auto cFormat = gfx::ImageFormat::RGBA8;
+  constexpr auto cGPU = 0;
+  constexpr auto cClearColors = std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f};
+  const auto cVertices = std::array<vec3, 3> {{{-0.5f, -0.5f, 0.0f},
+                                              { 0.5f, -0.5f, 0.0f},
+                                              { 0.0f,  0.5f, 0.0f}}};
+
+  auto info = gfx::RenderPassInfo();
+  auto subpass = gfx::Subpass();
+  auto attachment = gfx::Attachment();
+  attachment.info.name = "ColorAttachment";
+  attachment.info.width = cWidth;
+  attachment.info.height = cHeight;
+  attachment.info.gpu = 0;
+  attachment.info.format = cFormat;
+  attachment.info.gpu = cGPU;
+  attachment.clear_color = cClearColors;
+
+  subpass.attachments.push_back(attachment);
+  info.subpasses.push_back(subpass);
+  info.gpu = cGPU;
+  info.width = cWidth;
+  info.height = cHeight;
+
+  auto rp = gfx::RenderPass(info);
+  auto cmd = gfx::CommandList(cGPU);
+  auto pipe_info = gfx::GraphicsPipelineInfo();
+  auto vertices = gfx::Vector<vec3>(cGPU, cVertices.size());
+  pipe_info.gpu = cGPU;
+  pipe_info.initial_viewport = {};
+  pipe_info.shaders = {{"vertex", luna::gfx::ShaderType::Vertex, vertex_shader}, {"fragment", luna::gfx::ShaderType::Fragment, fragment_shader}};
+  
+  vertices.upload(cVertices.data());
+  auto pipeline = luna::gfx::GraphicsPipeline(rp, pipe_info);
+  auto bind_group = pipeline.create_bind_group();
+
+  cmd.begin();
+  cmd.start_draw(rp); // Tell backend to start drawing to this render pass
+  cmd.bind(bind_group); // Bind resources (pipeline, resources, etc.)
+  cmd.viewport({}); // update viewport of the scene (only have to do once).
+  cmd.draw(vertices);
+  //cmd.next_subpass(); // Not yet implemented, but ideally should push it to the next subpass for any subsequent draws.
+  cmd.end_draw  (); // Tell backend to stop drawing to that render pass. (Can attach a separate one if you want)
+  cmd.end();
+  auto fence = cmd.submit();
+  EXPECT_GE(pipeline.handle(), 0);
+}
+
 TEST(Interface, CommandBufferTiming) {
   constexpr auto cGPU = 0;
   constexpr auto cSize = 1024;
   constexpr auto cNumIterations = 2048;
   constexpr auto cMinTimeMillis = 0.05;
   constexpr auto cMaxTimeMillis = 1.00;
-  auto buf_a = gfx::Buffer(cGPU, cSize);
-  auto buf_b = gfx::Buffer(cGPU, cSize);
+  auto buf_a = gfx::MemoryBuffer(cGPU, cSize);
+  auto buf_b = gfx::MemoryBuffer(cGPU, cSize);
   auto cmd = gfx::CommandList(cGPU);
   cmd.begin();
   cmd.start_time_stamp();
