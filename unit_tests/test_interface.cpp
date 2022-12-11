@@ -5,6 +5,7 @@
 #include "luna-gfx/interface/pipeline.hpp"
 #include "luna-gfx/interface/window.hpp"
 #include "luna-gfx/interface/command_list.hpp"
+#include "luna-gfx/interface/event.hpp"
 
 #include "unit_tests/vertex_shader.hpp"
 #include "unit_tests/fragment_shader.hpp"
@@ -23,6 +24,14 @@ struct vec3 {
 
 template<typename T>
 constexpr auto in_range(T min, T max, T val) {return min < val && val < max;}
+
+template<typename T>
+inline auto check_vector_values(luna::gfx::Vector<T>& vec, T truth) {
+  auto mapped = vec.get_mapped_container();
+  for(auto& val : mapped) {
+    EXPECT_EQ(val, truth);
+  }
+}
 
 namespace luna::interface_test {
 TEST(Interface, CreateBuffer) {
@@ -63,22 +72,31 @@ TEST(Interface, CreateWindow) {
 }
 
 TEST(Interface, CreateRenderPass) {
+  constexpr auto cGPU = 0;
   constexpr auto cWidth = 1280u;
   constexpr auto cHeight = 1024u;
+  constexpr auto cTripleBufferCount = 3;
   constexpr auto cFormat = gfx::ImageFormat::RGBA8;
-  constexpr auto cGPU = 0;
   constexpr auto cClearColors = std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f};
 
   auto info = gfx::RenderPassInfo();
   auto subpass = gfx::Subpass();
   auto attachment = gfx::Attachment();
-  attachment.info.name = "ColorAttachment";
-  attachment.info.width = cWidth;
-  attachment.info.height = cHeight;
-  attachment.info.gpu = 0;
-  attachment.info.format = cFormat;
-  attachment.info.gpu = cGPU;
+  auto img_info = gfx::ImageInfo();
+  auto framebuffers = std::vector<gfx::Image>();
+  img_info.name = "ColorAttachment";
+  img_info.width = cWidth;
+  img_info.height = cHeight;
+  img_info.gpu = 0;
+  img_info.format = cFormat;
+  img_info.gpu = cGPU;
+
   attachment.clear_color = cClearColors;
+  framebuffers.reserve(cTripleBufferCount);
+  for(auto index = 0u; index < cTripleBufferCount; index++) {
+    framebuffers.push_back(gfx::Image(img_info));
+    attachment.views.push_back(framebuffers.back());
+  }
 
   subpass.attachments.push_back(attachment);
   info.subpasses.push_back(subpass);
@@ -104,20 +122,23 @@ TEST(Interface, CreateRenderPassFromWindow) {
   auto window = gfx::Window(gfx::WindowInfo());
   auto info = gfx::RenderPassInfo();
   auto subpass = gfx::Subpass();
-  auto attachment = window.attachment();
+  auto attachment = gfx::Attachment();
+
+  attachment.views = window.image_views();
   subpass.attachments.push_back(attachment);
   info.subpasses.push_back(subpass);
   info.gpu = cGPU;
   info.width = cWidth;
   info.height = cHeight;
 
-  auto rp = gfx::RenderPass(info, window);
+  auto rp = gfx::RenderPass(info);
   EXPECT_GE(rp.handle(), 0);
 }
 
 TEST(Interface, CreateRenderPipeline) {
   constexpr auto cWidth = 1280u;
   constexpr auto cHeight = 1024u;
+  constexpr auto cTripleBufferCount = 3;
   constexpr auto cFormat = gfx::ImageFormat::RGBA8;
   constexpr auto cGPU = 0;
   constexpr auto cClearColors = std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f};
@@ -125,13 +146,21 @@ TEST(Interface, CreateRenderPipeline) {
   auto info = gfx::RenderPassInfo();
   auto subpass = gfx::Subpass();
   auto attachment = gfx::Attachment();
-  attachment.info.name = "ColorAttachment";
-  attachment.info.width = cWidth;
-  attachment.info.height = cHeight;
-  attachment.info.gpu = 0;
-  attachment.info.format = cFormat;
-  attachment.info.gpu = cGPU;
+  auto framebuffers = std::vector<gfx::Image>();
+  auto img_info = gfx::ImageInfo();
+  img_info.name = "ColorAttachment";
+  img_info.width = cWidth;
+  img_info.height = cHeight;
+  img_info.gpu = 0;
+  img_info.format = cFormat;
+  img_info.gpu = cGPU;
+
   attachment.clear_color = cClearColors;
+  framebuffers.reserve(cTripleBufferCount);
+  for(auto index = 0u; index < cTripleBufferCount; index++) {
+    framebuffers.push_back(gfx::Image(img_info));
+    attachment.views.push_back(framebuffers.back());
+  }
 
   subpass.attachments.push_back(attachment);
   info.subpasses.push_back(subpass);
@@ -249,10 +278,11 @@ TEST(Interface, CommandBufferDraw) {
    * 
    * ... but at the same time, this gives you a lot of fine-grain detail. So idk.
    */
+  constexpr auto cGPU = 0;
   constexpr auto cWidth = 1280u;
   constexpr auto cHeight = 1024u;
   constexpr auto cFormat = gfx::ImageFormat::RGBA8;
-  constexpr auto cGPU = 0;
+  constexpr auto cTripleBufferCount = 3;
   constexpr auto cClearColors = std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f};
   const auto cVertices = std::array<vec3, 3> {{{-0.5f, -0.5f, 0.0f},
                                               { 0.5f, -0.5f, 0.0f},
@@ -261,13 +291,21 @@ TEST(Interface, CommandBufferDraw) {
   auto info = gfx::RenderPassInfo();
   auto subpass = gfx::Subpass();
   auto attachment = gfx::Attachment();
-  attachment.info.name = "ColorAttachment";
-  attachment.info.width = cWidth;
-  attachment.info.height = cHeight;
-  attachment.info.gpu = 0;
-  attachment.info.format = cFormat;
-  attachment.info.gpu = cGPU;
+  auto img_info = gfx::ImageInfo();
+  auto framebuffers = std::vector<gfx::Image>();
+  img_info.name = "ColorAttachment";
+  img_info.width = cWidth;
+  img_info.height = cHeight;
+  img_info.gpu = 0;
+  img_info.format = cFormat;
+  img_info.gpu = cGPU;
+
   attachment.clear_color = cClearColors;
+  framebuffers.reserve(cTripleBufferCount);
+  for(auto index = 0u; index < cTripleBufferCount; index++) {
+    framebuffers.emplace_back(gfx::Image(img_info));
+    attachment.views.push_back(framebuffers.back());
+  }
 
   subpass.attachments.push_back(attachment);
   info.subpasses.push_back(subpass);
@@ -321,6 +359,131 @@ TEST(Interface, CommandBufferTiming) {
   auto time = duration.get();
   auto time_in_millis = std::chrono::duration<double, std::milli>(time);
   EXPECT_TRUE(in_range(cMinTimeMillis, cMaxTimeMillis, time_in_millis.count()));
+}
+
+TEST(Interface, CommandBufferCombos) {
+  constexpr auto cGPU = 0;
+  constexpr auto cSize = 1024;
+  constexpr auto cExample1 = 10.0f;
+  constexpr auto cExample2 = 55.0f;
+  constexpr auto cExample3 = 144.0f;
+  constexpr auto cExample4 = 277.0f;
+  const auto data1 = std::vector<float>(cSize, cExample1);
+  const auto data2 = std::vector<float>(cSize, cExample2);
+  const auto data3 = std::vector<float>(cSize, cExample3);
+  const auto data4 = std::vector<float>(cSize, cExample4);
+  auto buf_a = gfx::Vector<float>(cGPU, cSize);
+  auto buf_b = gfx::Vector<float>(cGPU, cSize);
+  auto buf_c = gfx::Vector<float>(cGPU, cSize);
+  auto buf_d = gfx::Vector<float>(cGPU, cSize);
+  auto cmd1 = gfx::CommandList(cGPU);
+  auto cmd2 = gfx::CommandList(cGPU);
+  auto cmd3 = gfx::CommandList(cGPU);
+
+  // Fill buffers with initial data.
+  buf_a.upload(data1.data());
+  buf_b.upload(data2.data());
+  buf_c.upload(data3.data());
+  buf_d.upload(data4.data());
+
+  // Record a sequence of copies and combo them together.
+  // Ideally, a -> b -> c -> d and all should happen in that order. 
+  // So, at the end, a, b, c, and d should all be cExample1.
+  cmd1.begin();
+  cmd1.copy(buf_a, buf_b);
+  cmd1.end();
+
+  cmd2.begin();
+  cmd2.copy(buf_b, buf_c);
+  cmd2.end();
+
+  cmd3.begin();
+  cmd3.copy(buf_c, buf_d);
+  cmd3.end();
+  
+  // Combos!!!
+  cmd1.combo_into(cmd2);
+  auto wait1 = cmd1.submit();
+  
+  cmd2.combo_into(cmd3);
+  auto wait2 = cmd2.submit();
+
+  auto wait3 = cmd3.submit();
+
+  // Only wait for 3 to complete. Doing this SHOULD make all of the others finished as well.
+  wait3.wait();
+
+  // Check and make sure the vectors are correct.
+  check_vector_values(buf_a, cExample1);
+  check_vector_values(buf_b, cExample1);
+  check_vector_values(buf_c, cExample1);
+  check_vector_values(buf_d, cExample1);
+}
+
+TEST(Interface, CommandBufferDrawToWindow) {
+  constexpr auto cWidth = 1280u;
+  constexpr auto cHeight = 1024u;
+  constexpr auto cGPU = 0;
+  constexpr auto cNumIterations = 1;
+  constexpr auto cClearColors = std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f};
+  const auto cVertices = std::array<vec3, 3> {{{-0.5f, -0.5f, 0.0f},
+                                          { 0.5f, -0.5f, 0.0f},
+                                          { 0.0f,  0.5f, 0.0f}}};
+
+  auto window = gfx::Window(gfx::WindowInfo());
+  auto info = gfx::RenderPassInfo();
+  auto subpass = gfx::Subpass();
+  auto attachment = gfx::Attachment();
+  attachment.clear_color = cClearColors;
+  attachment.views = window.image_views();
+  subpass.attachments.push_back(attachment);
+  info.subpasses.push_back(subpass);
+  info.gpu = cGPU;
+  info.width = cWidth;
+  info.height = cHeight;
+
+  auto rp = gfx::RenderPass(info);
+  
+  auto pipe_info = gfx::GraphicsPipelineInfo();
+  pipe_info.gpu = cGPU;
+  pipe_info.initial_viewport = {};
+  pipe_info.shaders = {{"vertex", luna::gfx::ShaderType::Vertex, vertex_shader}, {"fragment", luna::gfx::ShaderType::Fragment, fragment_shader}};
+  
+  auto pipeline = luna::gfx::GraphicsPipeline(rp, pipe_info);
+
+  auto cmd = gfx::CommandList(cGPU);
+  auto bind_group = pipeline.create_bind_group();
+  auto vertices = gfx::Vector<vec3>(cGPU, cVertices.size());
+  vertices.upload(cVertices.data());
+
+  for(auto i = 0u; i < cNumIterations; i++) {
+
+    // Combo next gpu action to the cmd list.
+    window.combo_into(cmd);
+    window.acquire();
+
+    // Draw some stuff...
+    cmd.begin();
+    cmd.start_draw(rp, window.current_frame());
+    cmd.bind(bind_group);
+    cmd.viewport({});
+    cmd.draw(vertices);
+    cmd.end_draw();
+    cmd.end();
+
+    // Combo this cmd list submit (sending stuff to the GPU) into the window for it's next GPU operation.
+    cmd.combo_into(window);
+
+    // Submit CONSUMES the window combo.
+    auto fence = cmd.submit();
+
+    // CONSUMES the cmd combo.
+    // Present the window. Since it was combo'd into by the cmd, it will wait on the cmd to finish on the GPU before presenting.
+    window.present();
+
+    // Wait for command to finish. Don't have to in realtime, but since this is looping we need to do so.
+    fence.wait();
+  }
 }
 }
 

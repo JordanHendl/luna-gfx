@@ -48,6 +48,10 @@ Device::~Device() {
   }
 }
 
+auto Device::wait_idle() -> void {
+  error(this->gpu.waitIdle(this->m_dispatch));
+}
+
 auto Device::operator=(Device&& mv) -> Device& {
   this->allocate_cb = mv.allocate_cb;
   this->gpu = mv.gpu;

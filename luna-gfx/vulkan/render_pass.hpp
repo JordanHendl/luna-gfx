@@ -25,7 +25,6 @@ class RenderPass {
       std::vector<vk::AttachmentReference> color;
       std::optional<vk::AttachmentReference> depth;
       std::optional<vk::AttachmentReference> stencil;
-      std::vector<std::array<std::int32_t, 3>> images;
     };
     
     RenderPass();

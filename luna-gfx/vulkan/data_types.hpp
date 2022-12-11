@@ -6,6 +6,13 @@
 #include <vector>
 namespace luna {
 namespace vulkan {
+
+struct Semaphore {
+  vk::Semaphore sem = {};
+  bool in_use = false;
+  auto valid() const {return in_use;}
+};
+
 struct Buffer {
   vk::Buffer buffer = {};
   VmaAllocation alloc = {};
@@ -36,8 +43,8 @@ struct Image {
 struct CommandBuffer {
   vk::CommandBuffer cmd = {};
   vk::CommandBufferBeginInfo begin_info = {};
-  std::vector<vk::Semaphore> wait_sems = {};
-  std::vector<vk::Semaphore> signal_sems = {};
+  std::vector<int32_t> sems_to_wait_on = {};
+  std::vector<int32_t> sems_to_signal = {};
   vk::SubmitInfo submit_info = {};
   vk::Fence fence = {};
   vk::Queue queue = {};

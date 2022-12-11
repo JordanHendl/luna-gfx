@@ -4,7 +4,6 @@
 #include <vulkan/vulkan.hpp>
 #include <string>
 #include <memory>
-
 namespace luna {
 namespace vulkan {
   class Window {

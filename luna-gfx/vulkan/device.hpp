@@ -67,6 +67,7 @@ struct Device {
   auto operator=(Device&& cpy) -> Device&;
   auto score() -> float;
   auto check_support(vk::SurfaceKHR surface) const -> void;
+  auto wait_idle() -> void;
   [[nodiscard]] inline auto graphics() -> Queue& { return this->queues[GRAPHICS]; }
   [[nodiscard]] inline auto compute() -> Queue& { return this->queues[COMPUTE]; }
   [[nodiscard]] inline auto transfer() -> Queue& { return this->queues[TRANSFER]; }

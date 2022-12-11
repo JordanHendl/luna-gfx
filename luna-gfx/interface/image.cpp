@@ -11,9 +11,42 @@ Image::Image(ImageInfo info, const unsigned char* initial_data) {
 
 Image::~Image() {
   if(this->m_handle < 0) return;
-  vulkan::destroy_image(this->m_handle);
+  auto& res = vulkan::global_resources();
+  auto& img = res.images[this->m_handle];
+  // If image is imported, we leave whoever originally created it to destroy it.
+  // In other words, if its imported, this is just a view to that image. Maybe should be a separate type? Idk.
+  if(!img.imported) vulkan::destroy_image(this->m_handle);
   this->m_handle = -1;
   this->m_info = {};
+}
+
+
+auto ImageView::format() const -> ImageFormat {
+  LunaAssert(this-m_handle >= 0, "Cannot access an invalid image view!");
+  auto& res = vulkan::global_resources();
+  auto& img = res.images[this->m_handle];
+  return vulkan::convert(img.format);
+}
+
+auto ImageView::width() const -> std::size_t {
+  LunaAssert(this-m_handle >= 0, "Cannot access an invalid image view!");
+  auto& res = vulkan::global_resources();
+  auto& img = res.images[this->m_handle];
+  return img.info.width;
+}
+
+auto ImageView::height() const -> std::size_t {
+  LunaAssert(this-m_handle >= 0, "Cannot access an invalid image view!");
+  auto& res = vulkan::global_resources();
+  auto& img = res.images[this->m_handle];
+  return img.info.height;
+}
+
+auto ImageView::layers() const -> std::size_t {
+  LunaAssert(this-m_handle >= 0, "Cannot access an invalid image view!");
+  auto& res = vulkan::global_resources();
+  auto& img = res.images[this->m_handle];
+  return img.info.layers;
 }
 }
 }

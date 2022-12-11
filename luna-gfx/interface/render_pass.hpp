@@ -13,7 +13,8 @@ enum class AttachmentType {
 };
 
 struct Attachment {
-  ImageInfo info = {};
+  // For N-style buffering.
+  std::vector<ImageView> views;
   std::array<float, 4> clear_color = {0, 0, 0, 0};
 };
 
@@ -34,15 +35,7 @@ struct RenderPassInfo {
 class RenderPass {
   public:
     RenderPass() {this->m_handle = -1;}
-
-    // Offscreen Rendering.
     RenderPass(RenderPassInfo info);
-
-    /** Onscreen Rendering.
-     * Note: When doing onscreen rendering, the final attachment is assumed to be the output color attachment to the window. Using the Window class's 
-     * 'attachment' member function is recommended as it is guaranteed to match the format of the window's framebuffer.
-     */
-    RenderPass(RenderPassInfo info, Window& window);
     RenderPass(RenderPass&& mv) {*this = std::move(mv);}
     RenderPass(const RenderPass& cpy) = delete;
     ~RenderPass();

@@ -6,3 +6,4 @@
 #include "luna-gfx/interface/pipeline.hpp"
 #include "luna-gfx/interface/bind_group.hpp"
 #include "luna-gfx/interface/command_list.hpp"
+#include "luna-gfx/interface/event.hpp"

@@ -1,6 +1,7 @@
 #include "luna-gfx/interface/command_list.hpp"
 #include "luna-gfx/interface/buffer.hpp"
 #include "luna-gfx/interface/image.hpp"
+#include "luna-gfx/interface/window.hpp"
 #include "luna-gfx/vulkan/utils/helper_functions.hpp"
 #include "luna-gfx/error/error.hpp"
 #include <algorithm>
@@ -41,9 +42,9 @@ namespace gfx {
     cmd.cmd.setScissor(0, sc, gpu.m_dispatch);
   }
 
-  auto CommandList::start_draw(const RenderPass& pass) -> void {
+  auto CommandList::start_draw(const RenderPass& pass, int buffer_layer) -> void {
     LunaAssert(this->m_handle >= 0, "Unable to begin an invalid command buffer.");
-    vulkan::cmd_start_render_pass(this->m_handle, pass.handle(), 0);
+    vulkan::cmd_start_render_pass(this->m_handle, pass.handle(), buffer_layer);
   }
 
   auto CommandList::end_draw() -> void {
@@ -73,9 +74,34 @@ namespace gfx {
     return std::async(std::launch::async, wait_func, this->m_handle);
   }
 
-  auto CommandList::wait_on(const CommandList& cmd) -> void {
+  auto CommandList::combo_into(const Window& window) -> void {
     LunaAssert(this->m_handle >= 0, "Unable to tell an invalid command buffer to wait on another.");
-    LunaAssert(false, "Not yet implemented");
+    auto& res = vulkan::global_resources();
+    auto& this_cmd = res.cmds[this->handle()];
+    auto& other_swap = res.swapchains[window.handle()];
+    // Grab sem ownership.
+    auto sem = vulkan::create_semaphores(this_cmd.gpu, 1);
+
+    // Set it to us to signal.
+    this_cmd.sems_to_signal.push_back(sem[0]);
+
+    // Set it to the input cmd to wait on (and eventually release).
+    other_swap.m_sems_to_wait_on.push_back(sem[0]);
+  }
+
+  auto CommandList::combo_into(const CommandList& cmd) -> void {
+    LunaAssert(this->m_handle >= 0, "Unable to tell an invalid command buffer to wait on another.");
+    auto& res = vulkan::global_resources();
+    auto& this_cmd = res.cmds[this->handle()];
+    auto& other_cmd = res.cmds[cmd.handle()];
+    // Grab sem ownership.
+    auto sem = vulkan::create_semaphores(this_cmd.gpu, 1);
+
+    // Set it to us to signal.
+    this_cmd.sems_to_signal.push_back(sem[0]);
+
+    // Set it to the input cmd to wait on (and eventually release).
+    other_cmd.sems_to_wait_on.push_back(sem[0]);
   }
 
   auto CommandList::copy(const MemoryBuffer& src, const MemoryBuffer& dst) -> void {

@@ -4,6 +4,8 @@
 #include <string>
 namespace luna {
 namespace gfx {
+class ImageView;
+class Image;
 enum class ImageFormat {
   RGBA8,
   BGRA8,
@@ -26,17 +28,41 @@ class Image {
   public:
     Image() {this->m_handle = -1;}
     Image(ImageInfo info, const unsigned char* initial_data = nullptr);
-    Image(Image&& mv) = default;
+    Image(Image&& mv) {*this = std::move(mv);};
     Image(const Image& cpy) = delete;
     ~Image();
 
-    auto operator=(Image&& mv) -> Image& = default;
+    auto operator=(Image&& mv) -> Image& {
+      this->m_handle = mv.m_handle;
+      this->m_info = mv.m_info;
+      mv.m_handle = -1;
+      return *this;
+    }
+
     auto operator=(const Image& cpy) -> Image& = delete;
     [[nodiscard]] inline auto handle() const -> std::int32_t {return this->m_handle;}
     [[nodiscard]] inline auto info() const {return this->m_info;}
   private:
+    friend class Window;
     std::int32_t m_handle;
     ImageInfo m_info;
+};
+
+// A const view into an image.
+class ImageView {
+public:
+  ImageView() {this->m_handle = -1;}
+  ImageView(std::int32_t handle) {this->m_handle = handle;}
+  ImageView(const Image& img) {this->m_handle = img.handle();}
+  ~ImageView() = default;
+  auto operator=(const Image& ref) -> ImageView& {this->m_handle = ref.handle(); return *this;}
+  [[nodiscard]] auto handle() const -> std::int32_t {return this->m_handle;}
+  [[nodiscard]] auto format() const -> ImageFormat;
+  [[nodiscard]] auto width() const -> std::size_t;
+  [[nodiscard]] auto height() const -> std::size_t;
+  [[nodiscard]] auto layers() const -> std::size_t;
+private:
+  std::int32_t m_handle;
 };
 }
 }

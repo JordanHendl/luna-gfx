@@ -36,7 +36,7 @@ struct GraphicsPipelineDetails {
   bool stencil_test = true; 
 
   // Whether this pipeline should perform a depth test.
-  bool depth_test = true; 
+  bool depth_test = false; 
 
   // The way this pipeline interprets incoming vertices for Graphicsing. Defaults to triangles.
   Topology topology = Topology::Triangle;

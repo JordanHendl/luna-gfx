@@ -57,7 +57,7 @@ class MemoryBuffer {
     auto gpu() const -> int;
 
     template<typename T>
-    auto upload(const T* ptr) -> void { upload_data_impl(reinterpret_cast<const unsigned char*>(ptr), sizeof(ptr) * this->size());}
+    auto upload(const T* ptr) -> void { upload_data_impl(reinterpret_cast<const unsigned char*>(ptr), this->size());}
     [[nodiscard]] inline auto type() const {return this->m_type;}
     [[nodiscard]] inline auto size() const {return this->m_size;}
     [[nodiscard]] inline auto handle() const -> std::int32_t {return this->m_handle;}

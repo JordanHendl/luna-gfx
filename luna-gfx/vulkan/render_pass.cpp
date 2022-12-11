@@ -20,8 +20,8 @@ inline auto convert(const gfx::Attachment& attachment)
   using StoreOps = vk::AttachmentStoreOp;
   using LoadOps = vk::AttachmentLoadOp;
 
-  auto is_depth = attachment.info.format == gfx::ImageFormat::Depth;
-  auto format = convert(attachment.info.format);
+  auto is_depth = attachment.views[0].format() == gfx::ImageFormat::Depth;
+  auto format = convert(attachment.views[0].format());
   auto layout = vk::ImageLayout::eColorAttachmentOptimal;
   auto stencil_store = is_depth ? StoreOps::eStore : StoreOps::eDontCare;
   auto stencil_load = is_depth ? LoadOps::eLoad : LoadOps::eDontCare;
@@ -71,12 +71,7 @@ RenderPass::~RenderPass() {
   }
 
   for(auto& subpass : this->m_subpasses) {
-    for(auto& img : subpass.images) {
-      destroy_image(img[0]);
-      destroy_image(img[1]);
-      destroy_image(img[2]);
-    }
-    subpass.images.clear();
+    subpass.luna_attachments.clear();
   }
 
   if (this->m_pass) {
@@ -115,44 +110,22 @@ auto RenderPass::operator=(RenderPass&& mv) -> RenderPass& {
 }
 
 auto RenderPass::make_images() -> void {
-
-  for(auto& subpass : this->m_subpasses) {
-    subpass.images.resize(subpass.luna_attachments.size());
-    auto create_imgs = [&] (auto& attachment) {
-      auto transfer_bits = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled;
-      auto depth_usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | transfer_bits;
-      auto color_usage = vk::ImageUsageFlagBits::eColorAttachment | transfer_bits;
-      auto usage = attachment.info.format == gfx::ImageFormat::Depth ?  depth_usage : color_usage;
-
-      auto img1 = create_image(attachment.info, vk::ImageLayout::eUndefined, usage, nullptr);
-      auto img2 = create_image(attachment.info, vk::ImageLayout::eUndefined, usage, nullptr);
-      auto img3 = create_image(attachment.info, vk::ImageLayout::eUndefined, usage, nullptr);
-      auto tmp = std::array<std::int32_t, 3>{img1, img2, img3}; 
-      return tmp;
-    };
-
-    // oops prob should do this to the last subpass only? @TODO 
-    if(this->m_swap == nullptr) {
-      std::transform(subpass.luna_attachments.begin(), subpass.luna_attachments.end(), subpass.images.begin(), create_imgs); 
-    } else {
-      std::transform(subpass.luna_attachments.begin(), subpass.luna_attachments.end() - 1, subpass.images.begin(), create_imgs);
-      LunaAssert(convert(subpass.luna_attachments.back().info.format) == this->m_swap->format(), "Trying to attach a window to a render pass when the format of the last attachment of the subpass is the same as the window's.");
-      subpass.images.back() = {this->m_swap->image(0), this->m_swap->image(1), this->m_swap->image(2)};
-    }
-    }
 }
 
 auto RenderPass::add_subpass(const gfx::Subpass& in_subpass) -> void {
-  auto subpass = RenderPass::Subpass();
+  auto& res = global_resources();
+  this->m_subpasses.push_back({});
+  auto& subpass = this->m_subpasses.back();
   subpass.desc.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics);
-
+  
   for (auto index = 0u; index < in_subpass.attachments.size(); index++) {
     auto color = vk::ClearColorValue();
     auto reference = vk::AttachmentReference(); 
     auto clear = vk::ClearValue();
     auto& attachment = in_subpass.attachments[index];
     auto description = convert(attachment);
-
+    
+    auto& img = res.images[attachment.views[0].handle()];
     for(auto index = 0u; index < 4; ++index) color.float32[index] = attachment.clear_color[index];
     const auto is_depth = description.finalLayout == vk::ImageLayout::eDepthStencilReadOnlyOptimal;
     const auto is_color = !(is_depth);
@@ -166,17 +139,20 @@ auto RenderPass::add_subpass(const gfx::Subpass& in_subpass) -> void {
       subpass.desc.setPDepthStencilAttachment(std::addressof(*subpass.depth));
     } else if(is_color) {
       reference.setLayout(vk::ImageLayout::eColorAttachmentOptimal);
+      if(img.imported) {
+        description.finalLayout = vk::ImageLayout::ePresentSrcKHR;
+      }
       subpass.color.push_back(reference);
     }
 
     subpass.luna_attachments.push_back(in_subpass.attachments[index]);
     this->m_attachments.push_back(description);
   }
-
-  this->m_subpasses.push_back(subpass);
+  subpass.desc.setColorAttachments(subpass.color);
 }
 
 auto RenderPass::parse_info(const gfx::RenderPassInfo& info) -> void {
+  this->m_subpasses.reserve(info.subpasses.size());
   for (auto& subpass : info.subpasses) {
     this->add_subpass(subpass);
   }
@@ -205,28 +181,31 @@ auto RenderPass::bind() -> void {
   auto& res = global_resources();
   auto* gpu = this->m_device;
 
-  for(auto index = 0u; index < 3; index++) {
+  auto num_buffers = this->m_subpasses[0].luna_attachments[0].views.size();
+
+  for(auto index = 0u; index < num_buffers; index++) {
     for(auto& subpass : this->m_subpasses) {
-      auto info = vk::FramebufferCreateInfo();
-      auto views = std::vector<vk::ImageView>();
+        auto info = vk::FramebufferCreateInfo();
+        auto views = std::vector<vk::ImageView>();
 
-      info.setWidth(this->m_area.extent.width);
-      info.setHeight(this->m_area.extent.height);
+        info.setWidth(this->m_area.extent.width);
+        info.setHeight(this->m_area.extent.height);
 
-      info.setAttachmentCount(subpass.images.size());
-      info.setLayers(1);
-      info.setRenderPass(this->m_pass);
+        info.setAttachmentCount(subpass.luna_attachments.size());
+        info.setLayers(1);
+        info.setRenderPass(this->m_pass);
   
-      views.reserve(subpass.images.size());
-      for(auto& imgs : subpass.images) {
-        views.push_back(res.images[imgs[index]].view);
+        views.reserve(subpass.luna_attachments.size());
+        for(auto& attach : subpass.luna_attachments) {
+          LunaAssert(attach.views.size() == num_buffers, "All images in a render pass must have the same buffering (all must be single/double/triple buffered).");
+          views.push_back(res.images[attach.views[index].handle()].view);
+        };
+  
+        info.setAttachments(views);
+        auto fb = error(gpu->gpu.createFramebuffer(info, gpu->allocate_cb, gpu->m_dispatch));
+        this->m_framebuffers.push_back(fb);
       }
-  
-      info.setAttachments(views);
-      auto fb = error(gpu->gpu.createFramebuffer(info, gpu->allocate_cb, gpu->m_dispatch));
-      this->m_framebuffers.push_back(fb);
     }
   }
-}
 }  // namespace vulkan
 }  // namespace luna

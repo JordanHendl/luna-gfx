@@ -1,12 +1,14 @@
 #pragma once
 #include "luna-gfx/interface/render_pass.hpp"
+#include "luna-gfx/interface/image.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <future>
 namespace luna {
 namespace gfx {
-
+class CommandList;
 struct WindowInfo {
   std::string title = "LunaWindow";
   size_t width = 1280;
@@ -27,14 +29,17 @@ class Window {
     Window(Window&& mv) {*this = std::move(mv);};
     Window(const Window& cpy) = delete;
     ~Window();
-    
-    // This function returns the type of attachment for this window's framebuffer format. Used primarily for attaching this window to a render pass.
-    [[nodiscard]] auto attachment() -> gfx::Attachment;
+    auto acquire() -> std::size_t;
+    auto combo_into(CommandList& cmd) -> void;
+    auto present() -> void;
+    [[nodiscard]] auto current_frame() -> std::size_t;
+    [[nodiscard]] auto image_views() -> std::vector<ImageView>;
     [[nodiscard]] inline auto handle() const -> std::int32_t {return this->m_handle;}
     [[nodiscard]] inline auto info() const -> const WindowInfo& {return this->m_info;}
     auto operator=(Window&& mv) -> Window& {this->m_handle = mv.m_handle; mv.m_handle = -1; this->m_info = mv.m_info; return *this;};
     auto operator=(const Window& cpy) -> Window& = delete;
   private:
+    std::vector<Image> m_images;
     std::int32_t m_handle;
     WindowInfo m_info;
 };

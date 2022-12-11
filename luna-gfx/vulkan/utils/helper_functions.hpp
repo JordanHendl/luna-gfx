@@ -60,24 +60,38 @@ inline auto end_command_buffer(int32_t handle) -> void {
 
 inline auto create_semaphores(int gpu_id, size_t amount) {
   auto& res = global_resources();
-  auto& gpu = res.devices[gpu_id];
+  auto& sems = res.semaphores[gpu_id];
 
-  auto tmp = std::vector<vk::Semaphore>(amount);
+  auto tmp = std::vector<int32_t>(amount);
 
   for(auto& sem : tmp) {
-    sem = error(gpu.gpu.createSemaphore({}, gpu.allocate_cb, gpu.m_dispatch));
+    sem = find_valid_entry(sems);
+    sems[sem].in_use = true;
   }
 
   return tmp;
 }
 
-inline auto destroy_semaphores(int gpu_id, std::vector<vk::Semaphore> sems) -> std::vector<vk::Semaphore>{
+inline auto vk_sems_from_ids(int gpu_id, const std::vector<int32_t>& in_sems) -> std::vector<vk::Semaphore> {
   auto& res = global_resources();
-  auto& gpu = res.devices[gpu_id];
+  auto& sems = res.semaphores[gpu_id];
 
-  for(auto sem : sems)
-    gpu.gpu.destroy(sem, gpu.allocate_cb, gpu.m_dispatch);
+  auto ret = std::vector<vk::Semaphore>();
+  ret.reserve(in_sems.size());
+  for(auto sem : in_sems) {
+    ret.push_back(sems[sem].sem);
+  }
 
+  return ret;
+}
+
+inline auto release_semaphores(int gpu_id, const std::vector<int32_t>& in_sems) -> std::vector<int32_t>{
+  auto& res = global_resources();
+  auto& sems = res.semaphores[gpu_id];
+
+  for(auto sem : in_sems) {
+    sems[sem].in_use = false;
+  }
   return {};
 }
 
@@ -106,7 +120,6 @@ inline auto create_cmd(int gpu, gfx::Queue type = gfx::Queue::All, CommandBuffer
   cmd.cmd = error(device.gpu.allocateCommandBuffers(info, device.m_dispatch)).data()[0];
   cmd.fence = error(device.gpu.createFence(fence_info, device.allocate_cb, device.m_dispatch));
   cmd.queue = queue;
-  cmd.signal_sems = create_semaphores(gpu, 1);
   cmd.gpu = gpu;
   cmd.pool = pool;
   return index;
@@ -128,8 +141,13 @@ inline auto destroy_cmd(int32_t handle) -> void {
   auto& cmd = res.cmds[handle];
   auto& gpu = res.devices[cmd.gpu];
   if(cmd.signaled) synchronize_cmd(handle);
-  if(cmd.timestamp_pool) gpu.gpu.destroy(cmd.timestamp_pool, gpu.allocate_cb, gpu.m_dispatch);
-  cmd.signal_sems = destroy_semaphores(cmd.gpu, cmd.signal_sems);
+  if(cmd.timestamp_pool) {
+    gpu.gpu.destroy(cmd.timestamp_pool, gpu.allocate_cb, gpu.m_dispatch);
+    cmd.timestamp_pool = nullptr;
+  } 
+  release_semaphores(cmd.gpu, cmd.sems_to_wait_on);
+  cmd.sems_to_signal.clear();
+  cmd.sems_to_wait_on.clear();
   gpu.gpu.destroy(cmd.fence, gpu.allocate_cb, gpu.m_dispatch);
   gpu.gpu.freeCommandBuffers(cmd.pool, 1, &cmd.cmd, gpu.m_dispatch);
   cmd.cmd = nullptr;
@@ -228,7 +246,6 @@ inline auto submit_command_buffer(int32_t handle) -> void {
   auto& queue = cmd.queue;
 
   auto vector = std::vector<vk::Semaphore>();
-  auto signal_sems = std::vector<vk::Semaphore>();
   auto masks = std::vector<vk::PipelineStageFlags>();
   
   if(cmd.fence && cmd.signaled) {
@@ -236,13 +253,26 @@ inline auto submit_command_buffer(int32_t handle) -> void {
     error(gpu.gpu.resetFences(1, &cmd.fence, gpu.m_dispatch));
   }
 
+  auto wait_sems = vk_sems_from_ids(cmd.gpu, cmd.sems_to_wait_on);
+  auto signal_sems = vk_sems_from_ids(cmd.gpu, cmd.sems_to_signal);
+
+  masks.resize(wait_sems.size());
+  for(auto& mask : masks) mask = vk::PipelineStageFlagBits::eTopOfPipe;
+
   info.setCommandBufferCount(1);
   info.setPCommandBuffers(&cmd.cmd);
-  info.setWaitSemaphores(cmd.wait_sems);
-  info.setSignalSemaphores(cmd.signal_sems);
+  info.setWaitSemaphores(wait_sems);
+  info.setSignalSemaphores(signal_sems);
   info.setWaitDstStageMask(masks);
 
+  if(wait_sems.size() > 0)
+    LunaAssert(info.waitSemaphoreCount > 0, "WTF");
   error(queue.submit(1, &info, cmd.fence, gpu.m_dispatch));
+
+  // Release the sems that were just consumed.
+  release_semaphores(cmd.gpu, cmd.sems_to_wait_on); 
+  cmd.sems_to_wait_on.clear();
+  cmd.sems_to_signal.clear();
   cmd.signaled = true;
 }
 
@@ -286,48 +316,6 @@ inline auto transition_image(int32_t cmd_id, int32_t image_id, vk::ImageLayout l
   LunaAssert(new_layout != vk::ImageLayout::eUndefined, "Attempting to transition an image to an undefined layout, which is not possible");
   cmd.cmd.pipelineBarrier(src, dst, dep_flags, 0, nullptr, 0, nullptr, 1, &image.barrier, gpu.m_dispatch);
   image.layout = new_layout;
-}
-
-inline auto present_swapchain(int32_t /*cmd_id*/, int32_t /*swap_id*/) -> void {
-//  auto& res = global_resources();
-//  auto& cmd = res.cmds[cmd_id];
-//  auto& swap = res.swapchains[swap_id];
-//  auto& gpu = res.devices[cmd.gpu];
-//
-//  auto info = vk::PresentInfoKHR();
-//  auto queue = gpu.graphics().queue;
-//  auto indices = swap.front();
-//  auto chain = swap.swapchain();
-//  auto wait_sems = std::vector<vk::Semaphore>();
-//
-//  wait_sems.push_back(cmd.signal_sems[0]);
-//  wait_sems.push_back(swap.wait_sem());
-//  info.setPImageIndices(&indices);
-//  info.setSwapchainCount(1);
-//  info.setPSwapchains(&chain);
-//  info.setWaitSemaphores(wait_sems);
-//  
-//  swap.advance();
-//
-//  // Don't assert here because we may just need to handle window resizes.
-//  // @JH TODO: This technically should assert on all errors that aren't window
-//  // resizes.
-//
-//  auto recreate_swap = [&] () {
-//    error(gpu.gpu.waitIdle(gpu.m_dispatch));
-//    { auto tmp = std::move(swap); }
-//    swap = std::move(luna::vulkan::Swapchain(gpu, res.windows[swap_id].surface(), false));
-//  };
-//
-//  auto result = queue.presentKHR(&info, gpu.m_dispatch);
-//  if(result != vk::Result::eSuccess) {
-//    recreate_swap();
-//  } else {
-//     result = swap.acquire();
-//     if(result != vk::Result::eSuccess) {
-//       recreate_swap();
-//     }
-//  }
 }
 
 inline auto copy_buffer_to_buffer(int32_t cmd_id, int32_t from, int32_t to, std::size_t amt = 0) -> void {

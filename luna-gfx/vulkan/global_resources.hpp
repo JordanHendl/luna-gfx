@@ -15,14 +15,14 @@ class Descriptor;
 class Pipeline;
 class Instance;
 class Device;
-class Buffer;
-class Image;
 class CommandBuffer;
 class Descriptor;
 class RenderPass;
 class Swapchain;
 class Window;
-
+struct Image;
+struct Buffer;
+struct Semaphore;
 auto create_pool(Device& device, int queue_family) -> vk::CommandPool;
 
 struct GlobalResources {
@@ -34,6 +34,7 @@ struct GlobalResources {
   std::vector<Device> devices;
   std::vector<Buffer> buffers;
   std::vector<Image> images;
+  std::vector<std::vector<Semaphore>> semaphores;
   std::vector<CommandBuffer> cmds;
   std::vector<Pipeline> pipelines;
   std::vector<Descriptor> descriptors;

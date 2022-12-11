@@ -11,7 +11,9 @@ class BindGroup;
 class MemoryBuffer;
 class Image;
 class RenderPass;
+class Window;
 struct Viewport;
+class Window;
 enum class Queue {
   All,
   Graphics,
@@ -29,17 +31,18 @@ class CommandList {
 
     auto begin() -> void;
     auto end() -> void;
-    auto start_draw(const RenderPass& pass) -> void;
+    auto start_draw(const RenderPass& pass, int buffer_layer = 0) -> void;
     auto end_draw() -> void; 
     // Returns a future that is ready when the submit is finished executing on the gpu.
     [[nodiscard]] auto submit() -> std::future<bool>;
-    auto wait_on(const CommandList& cmd) -> void;
+    auto combo_into(const Window& window) -> void;
+    auto combo_into(const CommandList& cmd) -> void;
     auto start_time_stamp() -> void;
+    // Returns a future that returns the time it took for the GPU to perform any of the in-between actions.
     [[nodiscard]] auto end_time_stamp() -> std::future<std::chrono::duration<double, std::nano>>;
     auto barrier() -> void;
     auto flush() -> void;
     auto viewport(const Viewport& view) -> void;
-    
     template<typename T>
     auto copy(const Vector<T>& src, const Vector<T>& dst) -> void {this->copy(src.buffer(), dst.buffer());}
 
@@ -65,13 +68,13 @@ class CommandList {
       this->draw(vertices.buffer(), vertices.buffer().size()/sizeof(V), indices.buffer(), indices.buffer().size()/sizeof(T), instance_count); 
     }
 
-    auto draw(const MemoryBuffer& vertices, std::size_t num_verts, const MemoryBuffer& indices, std::size_t num_indices, std::size_t instance_count = 1) -> void;
 
     template<typename V>
     auto draw(const Vector<V>& vertices, std::size_t instance_count = 1) -> void {
       this->draw(vertices.buffer(), vertices.buffer().size()/sizeof(V), instance_count); 
     }
 
+    auto draw(const MemoryBuffer& vertices, std::size_t num_verts, const MemoryBuffer& indices, std::size_t num_indices, std::size_t instance_count = 1) -> void;
     auto draw(const MemoryBuffer& vertices, std::size_t num_verts, std::size_t instance_count = 1) -> void;
 
     [[nodiscard]] auto queue() const {return this->m_type;}

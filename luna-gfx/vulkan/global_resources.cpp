@@ -109,6 +109,7 @@ inline auto GlobalResources::find_gpus() -> void {
 GlobalResources::GlobalResources() {
   this->make_instance();
   this->find_gpus();
+  this->semaphores.resize(this->devices.size());
   this->buffers.resize(MAX_OBJECT_AMT);
   this->images.resize(MAX_OBJECT_AMT);
   this->pipelines.resize(MAX_OBJECT_AMT);
@@ -117,6 +118,17 @@ GlobalResources::GlobalResources() {
   this->cmds.resize(MAX_CMD_AMT);
   this->swapchains.resize(MAX_WINDOW_AMT);
   this->windows.resize(MAX_WINDOW_AMT);
+
+  for(auto index = 0u; index < this->semaphores.size(); index++) {
+    auto& gpu = this->devices[index];
+    auto info = vk::SemaphoreCreateInfo();
+    if(gpu.gpu) {
+      this->semaphores[index].resize(MAX_OBJECT_AMT);
+      for(auto& sem : this->semaphores[index]) {
+        sem.sem = error(gpu.gpu.createSemaphore(info, gpu.allocate_cb, gpu.m_dispatch)) ;
+      }
+    }
+  }
 }
 
 GlobalResources::~GlobalResources() {
@@ -173,6 +185,19 @@ GlobalResources::~GlobalResources() {
   this->buffers.clear();
   this->images.clear();
   
+  for(auto index = 0u; index < this->semaphores.size(); index++) {
+    auto& sem_vec = this->semaphores[index];
+    auto& gpu = this->devices[index];
+
+    for(auto& sem : sem_vec) {
+      gpu.gpu.destroy(sem.sem, gpu.allocate_cb, gpu.m_dispatch);
+    }
+
+    sem_vec.clear();
+  }
+
+  this->semaphores.clear();
+
   reset_command_pools(this->devices);
 
   for(auto& dev : this->devices) {
@@ -182,8 +207,6 @@ GlobalResources::~GlobalResources() {
   {
     auto tmp = std::move(this->instance);
   }
-
-
 }
 
 auto global_resources() -> GlobalResources& {
