@@ -23,6 +23,7 @@ class RenderPass {
       vk::SubpassDescription desc;
       std::vector<gfx::Attachment> luna_attachments;
       std::vector<vk::AttachmentReference> color;
+      std::vector<vk::ClearValue> clear_values;
       std::optional<vk::AttachmentReference> depth;
       std::optional<vk::AttachmentReference> stencil;
     };
@@ -38,6 +39,9 @@ class RenderPass {
     inline auto count() const -> size_t { return this->m_subpasses.size(); }
     inline auto device() -> Device* { return this->m_device; }
     inline auto area() const -> const vk::Rect2D& { return this->m_area; }
+    inline auto current_subpass() const -> const Subpass& {
+      return this->m_subpasses[this->m_current_subpass];
+    }
     inline auto subpasses() const -> const std::vector<Subpass>& {
       return this->m_subpasses;
     }
@@ -69,6 +73,7 @@ class RenderPass {
     vulkan::Swapchain* m_swap;
     size_t m_current_framebuffer;
     size_t m_num_binded_subpasses;
+    size_t m_current_subpass = 0;
 
     auto add_subpass(const gfx::Subpass& subpass) -> void;
     auto parse_info(const gfx::RenderPassInfo& info) -> void;

@@ -5,7 +5,8 @@
 namespace luna {
 namespace gfx {
 Image::Image(ImageInfo info, const unsigned char* initial_data) {
-  this->m_handle = luna::vulkan::create_image(info, vk::ImageLayout::eUndefined, vulkan::standard_image_usage(), initial_data);
+  auto usage = vulkan::usage_from_format(info.format);
+  this->m_handle = luna::vulkan::create_image(info, vk::ImageLayout::eUndefined, usage, initial_data);
   this->m_info = info;
 }
 

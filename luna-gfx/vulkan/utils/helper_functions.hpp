@@ -154,18 +154,17 @@ inline auto destroy_cmd(int32_t handle) -> void {
 }
 
 inline auto cmd_start_render_pass(int32_t cmd_handle, int32_t rp_handle, size_t framebuffer_id) -> void {
-  static const auto clear_colors = vk::ClearValue();
   auto& res = global_resources();
   auto& cmd = res.cmds[cmd_handle];
   auto& gpu = res.devices[cmd.gpu];
   auto& rp = res.render_passes[rp_handle];
 
+  const auto& curr_subpass = rp.current_subpass();
   auto info = vk::RenderPassBeginInfo();
   auto subpass = vk::SubpassContents::eInline;
   info.setRenderArea(rp.area());
   info.setRenderPass(rp.pass());
-  info.setClearValueCount(1);
-  info.setPClearValues(&clear_colors);
+  info.setClearValues(curr_subpass.clear_values);
   info.setFramebuffer(rp.framebuffers()[framebuffer_id]);
   cmd.cmd.beginRenderPass(info, subpass, gpu.m_dispatch);
 }
@@ -423,6 +422,14 @@ inline auto destroy_buffer(std::int32_t handle) -> void {
 inline auto standard_image_usage() {
   return vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
   vk::ImageUsageFlagBits::eSampled;
+}
+
+inline auto usage_from_format(gfx::ImageFormat format) {
+  using Usage = vk::ImageUsageFlagBits;
+  switch(format) {
+    case gfx::ImageFormat::Depth: return Usage::eDepthStencilAttachment | Usage::eTransferSrc | Usage::eTransferDst;
+    default : return standard_image_usage();
+  }
 }
 
 inline auto create_sampler(luna::vulkan::Device& device, luna::vulkan::Image& img) {

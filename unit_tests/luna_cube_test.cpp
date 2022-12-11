@@ -13,7 +13,7 @@ struct vec3 {
 luna::gfx::Window window;
 luna::gfx::RenderPass rp;
 luna::gfx::GraphicsPipeline pipeline;
-
+std::vector<luna::gfx::Image> depth_images;
 constexpr auto cWidth = 1280u;
 constexpr auto cHeight = 1024u;
 constexpr auto cGPU = 0;
@@ -32,8 +32,29 @@ auto init_graphics_pipeline() -> void {
   auto info = gfx::RenderPassInfo();
   auto subpass = gfx::Subpass();
   auto attachment = gfx::Attachment();
+
+  // Set up the color attachment (writing to the window's image buffers)
   attachment.clear_color = cClearColors;
   attachment.views = window.image_views();
+  subpass.attachments.push_back(attachment);
+
+
+  // Now, set up the depth attachments.
+  attachment.views.clear();
+  auto depth_img_info = gfx::ImageInfo();
+  depth_images.resize(window.image_views().size());
+  depth_img_info.format = luna::gfx::ImageFormat::Depth;
+  depth_img_info.width = window.info().width;
+  depth_img_info.height = window.info().height;
+  depth_img_info.gpu = cGPU;
+  attachment.clear_color = {1.0f, 1.0f, 1.0f, 1.0f};
+  
+  // They need to be the same amount of buffers as the image attachments (probably triple-buffered)
+  for(auto& img : depth_images) {
+    img = std::move(luna::gfx::Image(depth_img_info));
+    attachment.views.push_back(img);
+  }
+
   subpass.attachments.push_back(attachment);
   info.subpasses.push_back(subpass);
   info.gpu = cGPU;
@@ -44,11 +65,13 @@ auto init_graphics_pipeline() -> void {
   
   auto pipe_info = gfx::GraphicsPipelineInfo();
   pipe_info.gpu = cGPU;
+  pipe_info.details.depth_test = true;
   pipe_info.initial_viewport = {};
   pipe_info.shaders = {{"vertex", luna::gfx::ShaderType::Vertex, vertex_shader}, {"fragment", luna::gfx::ShaderType::Fragment, fragment_shader}};
   
   pipeline = luna::gfx::GraphicsPipeline(rp, pipe_info);
 }
+
 auto draw_loop() -> void {
   auto cmd = gfx::CommandList(cGPU);
   auto bind_group = pipeline.create_bind_group();

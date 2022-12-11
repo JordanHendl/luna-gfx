@@ -28,7 +28,7 @@ inline auto convert(const gfx::Attachment& attachment)
   auto load_op = LoadOps::eClear;  /// TODO make configurable
   auto store_op = StoreOps::eStore;
 
-  if(is_depth) layout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
+  if(is_depth) layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
   auto desc = vk::AttachmentDescription();
   desc.setSamples(vk::SampleCountFlagBits::e1);
@@ -127,7 +127,7 @@ auto RenderPass::add_subpass(const gfx::Subpass& in_subpass) -> void {
     
     auto& img = res.images[attachment.views[0].handle()];
     for(auto index = 0u; index < 4; ++index) color.float32[index] = attachment.clear_color[index];
-    const auto is_depth = description.finalLayout == vk::ImageLayout::eDepthStencilReadOnlyOptimal;
+    const auto is_depth = description.finalLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal;
     const auto is_color = !(is_depth);
 
     clear.setColor(color);
@@ -136,6 +136,8 @@ auto RenderPass::add_subpass(const gfx::Subpass& in_subpass) -> void {
     if(is_depth) {
       reference.setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
       subpass.depth = reference;  
+      clear.depthStencil.depth = attachment.clear_color[0];
+      clear.depthStencil.stencil = 0uLL;
       subpass.desc.setPDepthStencilAttachment(std::addressof(*subpass.depth));
     } else if(is_color) {
       reference.setLayout(vk::ImageLayout::eColorAttachmentOptimal);
@@ -145,6 +147,7 @@ auto RenderPass::add_subpass(const gfx::Subpass& in_subpass) -> void {
       subpass.color.push_back(reference);
     }
 
+    subpass.clear_values.push_back(clear);
     subpass.luna_attachments.push_back(in_subpass.attachments[index]);
     this->m_attachments.push_back(description);
   }
