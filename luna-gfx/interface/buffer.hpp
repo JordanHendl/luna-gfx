@@ -93,7 +93,8 @@ public:
   [[nodiscard]] inline auto size() const -> std::size_t {return this->m_data.size() / sizeof(T);}
   [[nodiscard]] inline auto get_mapped_container() -> MappedBuffer<T> {return this->m_data.get_mapped_container<T>();}
   inline auto upload(const T* ptr, std::size_t amt) -> void {this->m_data.upload(ptr, amt);}
-  inline auto upload(const T* ptr) -> void {this->m_data.upload(ptr);}
+  inline auto upload(const T* ptr) -> void {this->m_data.upload(ptr, this->size() * sizeof(T));}
+  inline auto upload(T data) -> void {this->m_data.upload(&data, sizeof(T));}
   inline auto map(T** ptr) -> void {this->m_data.map(ptr);}
   inline auto unmap() -> void {this->m_data.unmap();}
   inline auto type() const {return this->m_data.type();}

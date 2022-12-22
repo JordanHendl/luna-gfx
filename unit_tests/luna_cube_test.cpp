@@ -4,10 +4,20 @@
 #include <array>
 #include <vector>
 #include <iostream>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <chrono>
+
 struct vec3 {
   float x;
   float y;
   float z;
+};
+
+static_assert(sizeof(vec3) == (sizeof(float) * 3));
+
+struct Transformations {
+  glm::mat4 model;
 };
 
 luna::gfx::Window window;
@@ -19,15 +29,49 @@ constexpr auto cHeight = 1024u;
 constexpr auto cGPU = 0;
 constexpr auto cClearColors = std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f};
 
-const auto cVertices = std::array<vec3, 3> {{{-0.5f, -0.5f, 0.0f},
-                                          { 0.5f, -0.5f, 0.0f},
-                                          { 0.0f,  -1.0f, 0.0f}}};
+const std::vector<vec3> cVertices = {
+       {{-0.5f, -0.5f, -0.5f},
+        { 0.5f, -0.5f, -0.5f},
+        { 0.5f,  0.5f, -0.5f},
+        { 0.5f,  0.5f, -0.5f},
+        {-0.5f,  0.5f, -0.5f},
+        {-0.5f, -0.5f, -0.5f},
+        {-0.5f, -0.5f,  0.5f},
+        { 0.5f, -0.5f,  0.5f},
+        { 0.5f,  0.5f,  0.5f},
+        { 0.5f,  0.5f,  0.5f},
+        {-0.5f,  0.5f,  0.5f},
+        {-0.5f, -0.5f,  0.5f},
+        {-0.5f,  0.5f,  0.5f},
+        {-0.5f,  0.5f, -0.5f},
+        {-0.5f, -0.5f, -0.5f},
+        {-0.5f, -0.5f, -0.5f},
+        {-0.5f, -0.5f,  0.5f},
+        {-0.5f,  0.5f,  0.5f},
+        { 0.5f,  0.5f,  0.5f},
+        { 0.5f,  0.5f, -0.5f},
+        { 0.5f, -0.5f, -0.5f},
+        { 0.5f, -0.5f, -0.5f},
+        { 0.5f, -0.5f,  0.5f},
+        { 0.5f,  0.5f,  0.5f},
+        {-0.5f, -0.5f, -0.5f},
+        { 0.5f, -0.5f, -0.5f},
+        { 0.5f, -0.5f,  0.5f},
+        { 0.5f, -0.5f,  0.5f},
+        {-0.5f, -0.5f,  0.5f},
+        {-0.5f, -0.5f, -0.5f},
+        {-0.5f,  0.5f, -0.5f},
+        { 0.5f,  0.5f, -0.5f},
+        { 0.5f,  0.5f,  0.5f},
+        { 0.5f,  0.5f,  0.5f},
+        {-0.5f,  0.5f,  0.5f},
+        {-0.5f,  0.5f, -0.5f}}
+    };
+
 bool running = true;
 
 namespace luna {
 auto init_graphics_pipeline() -> void {
-
-
   window = gfx::Window(gfx::WindowInfo());
   auto info = gfx::RenderPassInfo();
   auto subpass = gfx::Subpass();
@@ -48,7 +92,7 @@ auto init_graphics_pipeline() -> void {
   depth_img_info.height = window.info().height;
   depth_img_info.gpu = cGPU;
   attachment.clear_color = {1.0f, 1.0f, 1.0f, 1.0f};
-  
+
   // They need to be the same amount of buffers as the image attachments (probably triple-buffered)
   for(auto& img : depth_images) {
     img = std::move(luna::gfx::Image(depth_img_info));
@@ -73,14 +117,30 @@ auto init_graphics_pipeline() -> void {
 }
 
 auto draw_loop() -> void {
+  Transformations* transforms = nullptr;
+  auto gpu_transforms = gfx::Vector<Transformations>(cGPU, 1);
   auto cmd = gfx::CommandList(cGPU);
   auto bind_group = pipeline.create_bind_group();
   auto vertices = gfx::Vector<vec3>(cGPU, cVertices.size());
   auto event_handler = gfx::EventRegister();
-  event_handler.add([](const gfx::Event& event){std::cout << "event recieved!" << std::endl; if(event.type() == gfx::Event::Type::WindowExit) running = false;});
-  vertices.upload(cVertices.data());
 
+  event_handler.add([](const gfx::Event& event){if(event.type() == gfx::Event::Type::WindowExit) running = false;});
+  gpu_transforms.map(&transforms);
+  vertices.upload(cVertices.data());
+  bind_group.set(gpu_transforms, "transform");
+  
+  transforms->model = glm::mat4(1.0f);
+
+  auto start_time = std::chrono::system_clock::now();
+  auto rot = 0.0f;
   while(running) {
+    // Update rotation
+    auto time_since_start = std::chrono::system_clock::now() - start_time;
+    auto time_in_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(time_since_start);
+    rot += ((static_cast<float>(time_in_seconds.count()) / 1000.0f) * 0.00009);
+    start_time = std::chrono::system_clock::now();
+
+    transforms->model = glm::rotate(transforms->model, (float)rot, glm::vec3(0.0f, 0.5f, 0.5f));
 
     // Combo next gpu action to the cmd list.
     window.combo_into(cmd);

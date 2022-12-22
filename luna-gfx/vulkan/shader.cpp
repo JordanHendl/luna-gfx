@@ -57,11 +57,11 @@ auto convert(gfx::AttributeType type) -> vk::Format {
     case gfx::AttributeType::eIVec4:
       return vk::Format::eR32G32B32A32Sint;
     case gfx::AttributeType::eMat3:
-      return vk::Format::eR32G32B32A32Sfloat;
+      return vk::Format::eR32G32B32Sfloat;
     case gfx::AttributeType::eVec3:
-      return vk::Format::eR32G32B32A32Sfloat;
+      return vk::Format::eR32G32B32Sfloat;
     case gfx::AttributeType::eIVec3:
-      return vk::Format::eR32G32B32A32Sint;
+      return vk::Format::eR32G32B32Sint;
     case gfx::AttributeType::eMat2:
       return vk::Format::eR32G32Sfloat;
     case gfx::AttributeType::eVec2:
@@ -141,7 +141,7 @@ Shader::Shader(Device& device, gfx::GraphicsPipelineInfo info) {
   this->m_file = std::make_unique<gfx::Shader>(info);
 
   this->parse();
-  this->makeDescriptorLayout();
+  this->makeDescriptorLayout();   
   this->makeShaderModules();
   this->makePipelineShaderInfos();
 }

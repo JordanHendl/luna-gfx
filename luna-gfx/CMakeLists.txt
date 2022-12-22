@@ -2,6 +2,6 @@ add_subdirectory(common)
 add_subdirectory(vma_lib)
 add_subdirectory(vulkan)
 add_subdirectory(interface)
-
+add_subdirectory(ext)
 add_library(luna_gfx SHARED gfx.cpp)
 target_link_libraries(luna_gfx PUBLIC luna_vulkan_impl luna_gfx_common luna_gfx_interface)

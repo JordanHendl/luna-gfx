@@ -8,8 +8,14 @@ class ImageView;
 class Image;
 enum class ImageFormat {
   RGBA8,
+  RGB8,
+  RG8,
+  R8,
   BGRA8,
   RGBA32F,
+  RGB32F,
+  RG32F,
+  R32F,
   Depth,
 };
 
