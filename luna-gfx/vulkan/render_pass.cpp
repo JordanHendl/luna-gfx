@@ -129,7 +129,7 @@ auto RenderPass::add_subpass(const gfx::Subpass& in_subpass) -> void {
     for(auto index = 0u; index < 4; ++index) color.float32[index] = attachment.clear_color[index];
     const auto is_depth = description.finalLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal;
     const auto is_color = !(is_depth);
-
+    color = attachment.clear_color;
     clear.setColor(color);
     reference.setAttachment(this->m_attachments.size());
 
@@ -137,7 +137,7 @@ auto RenderPass::add_subpass(const gfx::Subpass& in_subpass) -> void {
       reference.setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
       subpass.depth = reference;  
       clear.depthStencil.depth = attachment.clear_color[0];
-      clear.depthStencil.stencil = 0uLL;
+      clear.depthStencil.stencil = 0;
       subpass.desc.setPDepthStencilAttachment(std::addressof(*subpass.depth));
     } else if(is_color) {
       reference.setLayout(vk::ImageLayout::eColorAttachmentOptimal);

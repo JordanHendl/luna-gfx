@@ -1,4 +1,5 @@
 #include "luna-gfx/interface/image.hpp"
+#include "luna-gfx/interface/buffer.hpp"
 #include "luna-gfx/vulkan/utils/helper_functions.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -21,6 +22,19 @@ Image::~Image() {
   this->m_info = {};
 }
 
+auto Image::upload_raw(const unsigned char* ptr) -> void {
+    auto amt = this->m_info.width * this->m_info.height * luna::vulkan::size_from_format(this->m_info.format);
+    auto tmp_buffer = MemoryBuffer(this->m_info.gpu, amt, MemoryType::CPUVisible);
+    tmp_buffer.upload(ptr);
+
+    auto cmd = luna::vulkan::create_cmd(this->m_info.gpu);
+    luna::vulkan::begin_command_buffer(cmd);
+    luna::vulkan::copy_buffer_to_image(cmd, tmp_buffer.handle(), this->handle());
+    luna::vulkan::end_command_buffer(cmd);
+    luna::vulkan::submit_command_buffer(cmd);
+    luna::vulkan::synchronize_cmd(cmd);
+    luna::vulkan::destroy_cmd(cmd);
+}
 
 auto ImageView::format() const -> ImageFormat {
   LunaAssert(this-m_handle >= 0, "Cannot access an invalid image view!");

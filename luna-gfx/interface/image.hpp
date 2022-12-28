@@ -45,10 +45,16 @@ class Image {
       return *this;
     }
 
+    template<typename T>
+    auto upload(const T* ptr) -> void {
+      this->upload_raw(reinterpret_cast<const unsigned char*>(ptr));
+    }
+
     auto operator=(const Image& cpy) -> Image& = delete;
     [[nodiscard]] inline auto handle() const -> std::int32_t {return this->m_handle;}
     [[nodiscard]] inline auto info() const {return this->m_info;}
   private:
+    auto upload_raw(const unsigned char* ptr) -> void;
     friend class Window;
     std::int32_t m_handle;
     ImageInfo m_info;

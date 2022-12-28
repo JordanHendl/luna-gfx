@@ -7,14 +7,15 @@
 #include "luna-gfx/interface/command_list.hpp"
 #include "luna-gfx/interface/event.hpp"
 
-#include "unit_tests/vertex_shader.hpp"
-#include "unit_tests/fragment_shader.hpp"
 #include <array>
 #include <vector>
 #include <cstdint>
 #include <ratio>
 #include <algorithm>
 #include <array>
+
+#include "simple_vert.hpp"
+#include "simple_frag.hpp"
 
 struct vec3 {
   float x;
@@ -173,7 +174,9 @@ TEST(Interface, CreateRenderPipeline) {
   auto pipe_info = gfx::GraphicsPipelineInfo();
   pipe_info.gpu = cGPU;
   pipe_info.initial_viewport = {};
-  pipe_info.shaders = {{"vertex", luna::gfx::ShaderType::Vertex, vertex_shader}, {"fragment", luna::gfx::ShaderType::Fragment, fragment_shader}};
+  auto vert_shader = std::vector<uint32_t>(simple_vert, std::end(simple_vert));
+  auto frag_shader = std::vector<uint32_t>(simple_frag, std::end(simple_frag));
+  pipe_info.shaders = {{"vertex", luna::gfx::ShaderType::Vertex, vert_shader}, {"fragment", luna::gfx::ShaderType::Fragment, frag_shader}};
   
   auto pipeline = luna::gfx::GraphicsPipeline(rp, pipe_info);
   EXPECT_GE(pipeline.handle(), 0);
@@ -319,7 +322,9 @@ TEST(Interface, CommandBufferDraw) {
   auto vertices = gfx::Vector<vec3>(cGPU, cVertices.size());
   pipe_info.gpu = cGPU;
   pipe_info.initial_viewport = {};
-  pipe_info.shaders = {{"vertex", luna::gfx::ShaderType::Vertex, vertex_shader}, {"fragment", luna::gfx::ShaderType::Fragment, fragment_shader}};
+  auto vert_shader = std::vector<uint32_t>(simple_vert, std::end(simple_vert));
+  auto frag_shader = std::vector<uint32_t>(simple_frag, std::end(simple_frag));
+  pipe_info.shaders = {{"vertex", luna::gfx::ShaderType::Vertex, vert_shader}, {"fragment", luna::gfx::ShaderType::Fragment, frag_shader}};
   
   vertices.upload(cVertices.data());
   auto pipeline = luna::gfx::GraphicsPipeline(rp, pipe_info);
@@ -447,7 +452,9 @@ TEST(Interface, CommandBufferDrawToWindow) {
   auto pipe_info = gfx::GraphicsPipelineInfo();
   pipe_info.gpu = cGPU;
   pipe_info.initial_viewport = {};
-  pipe_info.shaders = {{"vertex", luna::gfx::ShaderType::Vertex, vertex_shader}, {"fragment", luna::gfx::ShaderType::Fragment, fragment_shader}};
+  auto vert_shader = std::vector<uint32_t>(simple_vert, std::end(simple_vert));
+  auto frag_shader = std::vector<uint32_t>(simple_frag, std::end(simple_frag));
+  pipe_info.shaders = {{"vertex", luna::gfx::ShaderType::Vertex, vert_shader}, {"fragment", luna::gfx::ShaderType::Fragment, frag_shader}};
   
   auto pipeline = luna::gfx::GraphicsPipeline(rp, pipe_info);
 

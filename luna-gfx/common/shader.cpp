@@ -13,6 +13,7 @@
 #include <array>
 #include <variant>
 #include <type_traits>
+#include <algorithm>
 
 namespace luna {
 namespace gfx {
@@ -324,6 +325,14 @@ auto Shader::ShaderData:: reflect_io(Shader::Stage& stage,
     attribute.type = convert(output->format);
     stage.out_attributes.push_back(attribute);
   }
+
+  auto compare = [](const Stage::Attribute& a, const Stage::Attribute& b) {
+    return a.location < b.location;
+  };
+
+  // Sort attributes so they're in location order
+  std::sort(stage.in_attributes.begin(), stage.in_attributes.end(), compare);
+  std::sort(stage.out_attributes.begin(), stage.out_attributes.end(), compare);
   (void)result;
   (void)success;
 }

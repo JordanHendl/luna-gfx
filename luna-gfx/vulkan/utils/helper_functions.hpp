@@ -309,8 +309,8 @@ inline auto transition_image(int32_t cmd_id, int32_t image_id, vk::ImageLayout l
   image.barrier.setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
 
   dep_flags = vk::DependencyFlags();
-  src = vk::PipelineStageFlagBits::eTopOfPipe;
-  dst = vk::PipelineStageFlagBits::eBottomOfPipe;
+  src = vk::PipelineStageFlagBits::eBottomOfPipe;
+  dst = vk::PipelineStageFlagBits::eTopOfPipe;
 
   LunaAssert(new_layout != vk::ImageLayout::eUndefined, "Attempting to transition an image to an undefined layout, which is not possible");
   cmd.cmd.pipelineBarrier(src, dst, dep_flags, 0, nullptr, 0, nullptr, 1, &image.barrier, gpu.m_dispatch);
@@ -478,36 +478,6 @@ inline auto create_image_view(luna::vulkan::Device& device, luna::vulkan::Image&
   img.view = luna::vulkan::error(device.gpu.createImageView(info, device.allocate_cb, device.m_dispatch));
 }
 
-//inline auto upload_data_to_image(int32_t image_id, gfx::ImageInfo& info, const unsigned char* initial_data) -> void {
-//    auto& res = global_resources();
-//    auto num_channels = 4;
-//    auto element_size = sizeof(unsigned char);
-//    switch(info.format) {
-//      case gfx::ImageFormat::RGBA32F:
-//        element_size = sizeof(float);
-//      case gfx::ImageFormat::RGBA8:
-//      case gfx::ImageFormat::BGRA8:
-//      default: break;
-//    }
-//
-//    auto size = info.width * info.height * num_channels * element_size;
-//    auto tmp_buffer = make_mappable_buffer(info.gpu, size);
-//    auto tmp_cmd = create_cmd(info.gpu, nullptr);
-//    auto cmd = res.cmds[tmp_cmd];
-//
-//    void* ptr = nullptr;
-//    map_buffer(tmp_buffer, &ptr);
-//    std::memcpy(ptr, initial_data, size);
-//    unmap_buffer(tmp_buffer);
-//
-//    begin_command_buffer(tmp_cmd);
-//    copy_buffer_to_image(tmp_cmd, tmp_buffer, image_id);
-//    end_command_buffer(tmp_cmd);
-//    submit_command_buffer(tmp_cmd);
-//    synchronize(tmp_cmd);
-//}
-
-
 inline auto create_image(gfx::ImageInfo& in_info, vk::ImageLayout layout, vk::ImageUsageFlags usage, vk::Image import) -> int32_t {
   auto& res = luna::vulkan::global_resources();
   auto index = luna::vulkan::find_valid_entry(res.images);
@@ -558,7 +528,6 @@ inline auto create_image(gfx::ImageInfo& in_info, vk::ImageLayout layout, vk::Im
   auto index = luna::vulkan::find_valid_entry(res.images);
   auto& image = res.images[index];
   
-  
   if (in_info.is_cubemap) {
     image.view_type = vk::ImageViewType::eCube;
     info.imageType = vk::ImageType::e2D;
@@ -604,10 +573,14 @@ inline auto create_image(gfx::ImageInfo& in_info, vk::ImageLayout layout, vk::Im
   create_sampler(gpu, image);
   create_image_view(gpu, image);
   
-  if(initial_data != nullptr) {
-    LunaAssert(false, "Input parameters to images not yet supported.");
-    //upload_data_to_image(index, in_info, initial_data);
-  }
+  // Transition image to general format.
+  auto cmd = luna::vulkan::create_cmd(in_info.gpu);
+  luna::vulkan::begin_command_buffer(cmd);
+  luna::vulkan::transition_image(cmd, index, vk::ImageLayout::eGeneral);
+  luna::vulkan::end_command_buffer(cmd);
+  luna::vulkan::submit_command_buffer(cmd);
+  luna::vulkan::synchronize_cmd(cmd);
+  luna::vulkan::destroy_cmd(cmd);
   return index;
 }
 

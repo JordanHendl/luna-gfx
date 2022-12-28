@@ -11,6 +11,8 @@ include(Sanitize)
 include(CompilerOptions)
 include(RunTest)
 
+set(SHADER_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+file(MAKE_DIRECTORY ${SHADER_DIR})
 
 AddCompilerOptions() # From cmake/CompilerOptions.cmake
 AddSanitizers() # From cmake/Sanitize.cmake

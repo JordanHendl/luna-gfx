@@ -68,7 +68,6 @@ class CommandList {
       this->draw(vertices.buffer(), vertices.buffer().size()/sizeof(V), indices.buffer(), indices.buffer().size()/sizeof(T), instance_count); 
     }
 
-
     template<typename V>
     auto draw(const Vector<V>& vertices, std::size_t instance_count = 1) -> void {
       this->draw(vertices.buffer(), vertices.buffer().size()/sizeof(V), instance_count); 

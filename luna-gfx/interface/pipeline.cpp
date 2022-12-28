@@ -8,6 +8,7 @@ namespace gfx {
   }
 
   GraphicsPipeline::~GraphicsPipeline() {
+    if(this->m_handle < 0) return; // Don't deconstruct an invalid handle!
     luna::vulkan::destroy_pipeline(this->m_handle);
     this->m_info = {};
   }

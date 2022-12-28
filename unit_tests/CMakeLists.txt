@@ -1,7 +1,10 @@
+add_subdirectory(test_shaders)
+
 macro(AddTest test_file)
   get_filename_component(test_name ${test_file} NAME_WLE)
   add_executable(${test_name} ${test_file})
   target_link_libraries(${test_name} GTest::GTest luna_gfx)
+  target_include_directories(${test_name} PUBLIC ${SHADER_DIR})
   add_test(NAME ${test_name} COMMAND ${test_name})
 endmacro()
 
@@ -14,7 +17,9 @@ if(GTest_FOUND)
   AddTest(test_vulkan_utils.cpp)
   AddTest(test_interface.cpp)
 endif()
+
 find_package(Threads)
 add_executable(luna_cube luna_cube_test.cpp)
 target_link_libraries(luna_cube luna_gfx Threads::Threads)
+target_include_directories(luna_cube PUBLIC ${SHADER_DIR})
 endif()
