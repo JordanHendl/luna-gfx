@@ -10,6 +10,7 @@ layout(location = 1) out vec2 frag_coord;
 
 layout( binding = 10 ) uniform Transformations { 
 float rotation;
+float offset;
 } transform;
 
  
@@ -36,9 +37,10 @@ mat4 rotationZ( in float angle ) {
 
 void main()
 {
-  frag_normal = in_normal;
+	mat4 rot = rotationX(0.25f) * rotationY(transform.rotation) * rotationZ(transform.rotation);
+	vec4 transformed_normal = vec4(in_normal, 1.0) * rot;
   frag_coord = in_tex_coord;
-
-  vec4 out_pos = vec4(in_position, 1) * rotationX(0.25f) * rotationY(transform.rotation) * rotationZ(transform.rotation);
-  gl_Position = vec4(out_pos.x, out_pos.y, out_pos.z +10, 1.0);
+  frag_normal = transformed_normal.xyz;
+  vec4 out_pos = vec4(in_position, 1) * rot;
+  gl_Position = vec4(out_pos.x, out_pos.y, out_pos.z + transform.offset, 1.0);
 }

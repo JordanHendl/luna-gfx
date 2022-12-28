@@ -21,7 +21,6 @@ class Swapchain {
   auto operator=(Swapchain&& mv) -> Swapchain&;
   auto wait(CommandBuffer& chain) -> void;
   auto present() -> void;
-  auto reset() -> void;
   auto format() {return this->m_surface_format.format;}
   auto width() {return this->m_extent.width;}
   auto height() {return this->m_extent.height;}
@@ -29,8 +28,9 @@ class Swapchain {
   auto swapchain() {return this->m_swapchain;}
   auto front() {return this->m_current_frame;}
   auto images() const -> const std::vector<int32_t>& {return this->m_images;}
+  auto was_recreated() -> bool {return this->m_was_recreated;}
   auto recreate() -> void;
-
+  
   /** Method to acquire the next image from the swapchain.
    */
   auto acquire() -> std::tuple<vk::Result, size_t>;
@@ -64,6 +64,8 @@ class Swapchain {
   unsigned m_current_frame;
   bool m_skip_frame;
   bool m_vsync;
+  bool m_was_recreated = false;
+  auto reset() -> void;
 
   /** Method to return the mode for this swapchain, if it's available.
    * @param value The requested mode.

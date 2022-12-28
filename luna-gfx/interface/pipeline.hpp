@@ -33,7 +33,7 @@ struct Viewport {
 */
 struct GraphicsPipelineDetails {
   // Whether the pipeline should perform a stencil test.
-  bool stencil_test = true; 
+  bool stencil_test = false; 
 
   // Whether this pipeline should perform a depth test.
   bool depth_test = false; 

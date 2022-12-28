@@ -246,7 +246,7 @@ auto Pipeline::parse(const gfx::GraphicsPipelineInfo& info) -> void {
   if (info.details.depth_test) {
     this->m_depth_stencil_info.setDepthTestEnable(true);
     this->m_depth_stencil_info.setDepthWriteEnable(true);
-    this->m_depth_stencil_info.setDepthCompareOp(vk::CompareOp::eLessOrEqual);
+    this->m_depth_stencil_info.setDepthCompareOp(vk::CompareOp::eLess);
     this->m_depth_stencil_info.setDepthBoundsTestEnable(false);
     this->m_depth_stencil_info.setMinDepthBounds(0.0f);
     this->m_depth_stencil_info.setMaxDepthBounds(1.0f);

@@ -14,35 +14,13 @@ Swapchain::Swapchain(int32_t device, vk::SurfaceKHR surface, bool vsync) {
   this->m_vsync = vsync;
   this->m_current_frame = 0;
   this->recreate();
+  this->m_was_recreated = false; // Reset the flag set by ::recreate() because this is initialization.
 }
 
 Swapchain::Swapchain(Swapchain&& mv) { *this = std::move(mv); }
 
 Swapchain::~Swapchain() {
-  if (this->m_swapchain) {
-    auto& gpu = global_resources().devices[this->m_gpu];
-    auto& dispatch = gpu.m_dispatch;
-    auto alloc_cb = gpu.allocate_cb;
-
-    for (auto& img : this->m_images)
-      destroy_image(img);
-
-    gpu.gpu.destroy(this->m_swapchain, alloc_cb, dispatch);
-    this->m_swapchain = nullptr;
-
-    for (auto& fence : this->m_fences) {
-      error(gpu.gpu.waitForFences(1, &fence, true, UINT64_MAX, dispatch));
-      gpu.gpu.destroy(fence, alloc_cb, dispatch);
-    }
-    for (auto& sem : this->m_image_available)
-      gpu.gpu.destroy(sem, alloc_cb, dispatch);
-    for (auto& sem : this->m_present_done) gpu.gpu.destroy(sem, alloc_cb, dispatch);
-
-    this->m_images.clear();
-    this->m_fences.clear();
-    this->m_image_available.clear();
-    this->m_present_done.clear();
-  }
+  this->reset();
 }
 
 auto Swapchain::operator=(Swapchain&& mv) -> Swapchain& {
@@ -84,6 +62,32 @@ auto Swapchain::operator=(Swapchain&& mv) -> Swapchain& {
   return *this;
 }
 
+auto Swapchain::reset() -> void {
+  if (this->m_swapchain) {
+    auto& gpu = global_resources().devices[this->m_gpu];
+    auto& dispatch = gpu.m_dispatch;
+    auto alloc_cb = gpu.allocate_cb;
+
+    for (auto& img : this->m_images)
+      destroy_image(img);
+
+    gpu.gpu.destroy(this->m_swapchain, alloc_cb, dispatch);
+    this->m_swapchain = nullptr;
+
+    for (auto& fence : this->m_fences) {
+      error(gpu.gpu.waitForFences(1, &fence, true, UINT64_MAX, dispatch));
+      gpu.gpu.destroy(fence, alloc_cb, dispatch);
+    }
+    for (auto& sem : this->m_image_available)
+      gpu.gpu.destroy(sem, alloc_cb, dispatch);
+    for (auto& sem : this->m_present_done) gpu.gpu.destroy(sem, alloc_cb, dispatch);
+
+    this->m_images.clear();
+    this->m_fences.clear();
+    this->m_image_available.clear();
+    this->m_present_done.clear();
+  }
+}
 auto Swapchain::make_swapchain() -> void {
   auto& gpu = global_resources().devices[this->m_gpu];
   auto info = vk::SwapchainCreateInfoKHR();
@@ -196,13 +200,15 @@ auto Swapchain::acquire() -> std::tuple<vk::Result, size_t> {
 }
 
 auto Swapchain::recreate() -> void {
+  this->reset();
+
   auto& gpu = global_resources().devices[this->m_gpu];
   auto fence_info = vk::FenceCreateInfo();
   fence_info.setFlags(vk::FenceCreateFlagBits::eSignaled);
 
   this->m_current_frame = 0;
   this->m_skip_frame = false;
-
+  this->m_was_recreated = true;
   this->m_fences.clear();
   this->find_properties();
   this->choose_extent();
@@ -223,6 +229,8 @@ auto Swapchain::present() -> void {
   auto& res = vulkan::global_resources();
   auto& gpu = res.devices[this->m_gpu];
 
+  // If this object has been recreated and it is now acquiring, we reset the flag because if anyone was to remake their assets they needed to have done so before now.
+  if(m_was_recreated) this->m_was_recreated = false; 
   auto info = vk::PresentInfoKHR();
   auto queue = gpu.graphics().queue;
   auto indices = this->m_current_frame;

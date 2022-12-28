@@ -16,7 +16,7 @@ struct WindowInfo {
   int gpu = 0;
   bool borderless = false;
   bool fullscreen = false;
-  bool resizable = true;
+  bool resizable = false;
   bool shown = true;
   bool capture_mouse = false;
   bool vsync = false;

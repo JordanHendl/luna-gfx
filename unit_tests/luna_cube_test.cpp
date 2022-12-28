@@ -30,11 +30,12 @@ struct Vertex {
 
 struct Transformations {
   float model;
+  float offset;
 };
 
 static_assert(sizeof(Vertex) == (sizeof(float) * 8));
 static_assert(sizeof(vec3) == (sizeof(float) * 3));
-static_assert(sizeof(Transformations) == (sizeof(float)));
+static_assert(sizeof(Transformations) == (sizeof(float) * 2));
 
 luna::gfx::Window window;
 luna::gfx::RenderPass rp;
@@ -43,58 +44,47 @@ std::vector<luna::gfx::Image> depth_images;
 constexpr auto cWidth = 1280u;
 constexpr auto cHeight = 1024u;
 constexpr auto cGPU = 0;
-constexpr auto cClearColors = std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f};
+constexpr auto cClearColors = std::array<float, 4>{0.0f, 0.2f, 0.2f, 1.0f};
 constexpr auto cBMPImageHeaderOffset = 54;
-
-//const std::vector<Vertex> cVertices = {
-//        // positions          // normals           // texture coords
-//        {{1.0f, 0.0f, 0.0f},  {0.0f,  0.0f, -1.0f},  {0.0f,  0.0f}},
-//        {{0.0f, 1.0f, 0.0f},  {0.0f,  0.0f, -1.0f},  {1.0f,  0.0f}},
-//        {{0.0f, 0.0f, 1.0f},  {0.0f,  0.0f, -1.0f},  {1.0f,  1.0f}},
-//        
-//        {{0.0f, 0.0f, 1.0f},  {0.0f,  0.0f, -1.0f},  {1.0f,  1.0f}},
-//        {{1.0f, 1.0f, 1.0f},  {0.0f,  0.0f, -1.0f},  {0.0f,  1.0f}},
-//        {{1.0f, 0.0f, 0.0f},  {0.0f,  0.0f, -1.0f},  {0.0f,  0.0f}},
-//    };
 
 const std::vector<Vertex> cVertices = {
         // positions          // normals           // texture coords
-        {{-0.5f, -0.5f,  0.0f},  {0.0f,  0.0f, -1.0f},  {0.0f,  0.0f}},
-        {{ 0.5f, -0.5f,  0.0f},  {0.0f,  0.0f, -1.0f},  {1.0f,  0.0f}},
-        {{ 0.5f,  0.5f,  0.0f},  {0.0f,  0.0f, -1.0f},  {1.0f,  1.0f}},
-        {{ 0.5f,  0.5f,  0.0f},  {0.0f,  0.0f, -1.0f},  {1.0f,  1.0f}},
-        {{-0.5f,  0.5f,  0.0f},  {0.0f,  0.0f, -1.0f},  {0.0f,  1.0f}},
-        {{-0.5f, -0.5f,  0.0f},  {0.0f,  0.0f, -1.0f},  {0.0f,  0.0f}},
-        {{-0.5f, -0.5f,  1.0f},  {0.0f,  0.0f,  1.0f},  {0.0f,  0.0f}},
-        {{ 0.5f, -0.5f,  1.0f},  {0.0f,  0.0f,  1.0f},  {1.0f,  0.0f}},
-        {{ 0.5f,  0.5f,  1.0f},  {0.0f,  0.0f,  1.0f},  {1.0f,  1.0f}},
-        {{ 0.5f,  0.5f,  1.0f},  {0.0f,  0.0f,  1.0f},  {1.0f,  1.0f}},
-        {{-0.5f,  0.5f,  1.0f},  {0.0f,  0.0f,  1.0f},  {0.0f,  1.0f}},
-        {{-0.5f, -0.5f,  1.0f},  {0.0f,  0.0f,  1.0f},  {0.0f,  0.0f}},
-        {{-0.5f,  0.5f,  1.0f},  {-1.0f,  0.0f,  0.0f},  {1.0f,  0.0f}},
-        {{-0.5f,  0.5f,  0.0f},  {-1.0f,  0.0f,  0.0f},  {1.0f,  1.0f}},
-        {{-0.5f, -0.5f,  0.0f},  {-1.0f,  0.0f,  0.0f},  {0.0f,  1.0f}},
-        {{-0.5f, -0.5f,  0.0f},  {-1.0f,  0.0f,  0.0f},  {0.0f,  1.0f}},
-        {{-0.5f, -0.5f,  1.0f},  {-1.0f,  0.0f,  0.0f},  {0.0f,  0.0f}},
-        {{-0.5f,  0.5f,  1.0f},  {-1.0f,  0.0f,  0.0f},  {1.0f,  0.0f}},
-        {{ 0.5f,  0.5f,  1.0f},  {1.0f,  0.0f,  0.0f},  {1.0f,  0.0f}},
-        {{ 0.5f,  0.5f,  0.0f},  {1.0f,  0.0f,  0.0f},  {1.0f,  1.0f}},
-        {{ 0.5f, -0.5f,  0.0f},  {1.0f,  0.0f,  0.0f},  {0.0f,  1.0f}},
-        {{ 0.5f, -0.5f,  0.0f},  {1.0f,  0.0f,  0.0f},  {0.0f,  1.0f}},
-        {{ 0.5f, -0.5f,  1.0f},  {1.0f,  0.0f,  0.0f},  {0.0f,  0.0f}},
-        {{ 0.5f,  0.5f,  1.0f},  {1.0f,  0.0f,  0.0f},  {1.0f,  0.0f}},
-        {{-0.5f, -0.5f,  0.0f},  {0.0f, -1.0f,  0.0f},  {0.0f,  1.0f}},
-        {{ 0.5f, -0.5f,  0.0f},  {0.0f, -1.0f,  0.0f},  {1.0f,  1.0f}},
-        {{ 0.5f, -0.5f,  1.0f},  {0.0f, -1.0f,  0.0f},  {1.0f,  0.0f}},
-        {{ 0.5f, -0.5f,  1.0f},  {0.0f, -1.0f,  0.0f},  {1.0f,  0.0f}},
-        {{-0.5f, -0.5f,  1.0f},  {0.0f, -1.0f,  0.0f},  {0.0f,  0.0f}},
-        {{-0.5f, -0.5f,  0.0f},  {0.0f, -1.0f,  0.0f},  {0.0f,  1.0f}},
-        {{-0.5f,  0.5f,  0.0f},  {0.0f,  1.0f,  0.0f},  {0.0f,  1.0f}},
-        {{ 0.5f,  0.5f,  0.0f},  {0.0f,  1.0f,  0.0f},  {1.0f,  1.0f}},
-        {{ 0.5f,  0.5f,  1.0f},  {0.0f,  1.0f,  0.0f},  {1.0f,  0.0f}},
-        {{ 0.5f,  0.5f,  1.0f},  {0.0f,  1.0f,  0.0f},  {1.0f,  0.0f}},
-        {{-0.5f,  0.5f,  1.0f},  {0.0f,  1.0f,  0.0f},  {0.0f,  0.0f}},
-        {{-0.5f,  0.5f,  0.0f},  {0.0f,  1.0f,  0.0f},  {0.0f,  1.0f}}
+        {{-0.2f, -0.2f,  -0.2f},  {0.0f,  0.0f, -1.0f},  {0.0f,  0.0f}},
+        {{ 0.2f, -0.2f,  -0.2f},  {0.0f,  0.0f, -1.0f},  {1.0f,  0.0f}},
+        {{ 0.2f,  0.2f,  -0.2f},  {0.0f,  0.0f, -1.0f},  {1.0f,  1.0f}},
+        {{ 0.2f,  0.2f,  -0.2f},  {0.0f,  0.0f, -1.0f},  {1.0f,  1.0f}},
+        {{-0.2f,  0.2f,  -0.2f},  {0.0f,  0.0f, -1.0f},  {0.0f,  1.0f}},
+        {{-0.2f, -0.2f,  -0.2f},  {0.0f,  0.0f, -1.0f},  {0.0f,  0.0f}},
+        {{-0.2f, -0.2f,   0.2f},  {0.0f,  0.0f,  1.0f},  {0.0f,  0.0f}},
+        {{ 0.2f, -0.2f,   0.2f},  {0.0f,  0.0f,  1.0f},  {1.0f,  0.0f}},
+        {{ 0.2f,  0.2f,   0.2f},  {0.0f,  0.0f,  1.0f},  {1.0f,  1.0f}},
+        {{ 0.2f,  0.2f,   0.2f},  {0.0f,  0.0f,  1.0f},  {1.0f,  1.0f}},
+        {{-0.2f,  0.2f,   0.2f},  {0.0f,  0.0f,  1.0f},  {0.0f,  1.0f}},
+        {{-0.2f, -0.2f,   0.2f},  {0.0f,  0.0f,  1.0f},  {0.0f,  0.0f}},
+        {{-0.2f,  0.2f,   0.2f},  {-1.0f,  0.0f,  0.0f},  {1.0f,  0.0f}},
+        {{-0.2f,  0.2f,  -0.2f},  {-1.0f,  0.0f,  0.0f},  {1.0f,  1.0f}},
+        {{-0.2f, -0.2f,  -0.2f},  {-1.0f,  0.0f,  0.0f},  {0.0f,  1.0f}},
+        {{-0.2f, -0.2f,  -0.2f},  {-1.0f,  0.0f,  0.0f},  {0.0f,  1.0f}},
+        {{-0.2f, -0.2f,   0.2f},  {-1.0f,  0.0f,  0.0f},  {0.0f,  0.0f}},
+        {{-0.2f,  0.2f,   0.2f},  {-1.0f,  0.0f,  0.0f},  {1.0f,  0.0f}},
+        {{ 0.2f,  0.2f,   0.2f},  {1.0f,  0.0f,  0.0f},  {1.0f,  0.0f}},
+        {{ 0.2f,  0.2f,  -0.2f},  {1.0f,  0.0f,  0.0f},  {1.0f,  1.0f}},
+        {{ 0.2f, -0.2f,  -0.2f},  {1.0f,  0.0f,  0.0f},  {0.0f,  1.0f}},
+        {{ 0.2f, -0.2f,  -0.2f},  {1.0f,  0.0f,  0.0f},  {0.0f,  1.0f}},
+        {{ 0.2f, -0.2f,   0.2f},  {1.0f,  0.0f,  0.0f},  {0.0f,  0.0f}},
+        {{ 0.2f,  0.2f,   0.2f},  {1.0f,  0.0f,  0.0f},  {1.0f,  0.0f}},
+        {{-0.2f, -0.2f,  -0.2f},  {0.0f, -1.0f,  0.0f},  {0.0f,  1.0f}},
+        {{ 0.2f, -0.2f,  -0.2f},  {0.0f, -1.0f,  0.0f},  {1.0f,  1.0f}},
+        {{ 0.2f, -0.2f,   0.2f},  {0.0f, -1.0f,  0.0f},  {1.0f,  0.0f}},
+        {{ 0.2f, -0.2f,   0.2f},  {0.0f, -1.0f,  0.0f},  {1.0f,  0.0f}},
+        {{-0.2f, -0.2f,   0.2f},  {0.0f, -1.0f,  0.0f},  {0.0f,  0.0f}},
+        {{-0.2f, -0.2f,  -0.2f},  {0.0f, -1.0f,  0.0f},  {0.0f,  1.0f}},
+        {{-0.2f,  0.2f,  -0.2f},  {0.0f,  1.0f,  0.0f},  {0.0f,  1.0f}},
+        {{ 0.2f,  0.2f,  -0.2f},  {0.0f,  1.0f,  0.0f},  {1.0f,  1.0f}},
+        {{ 0.2f,  0.2f,   0.2f},  {0.0f,  1.0f,  0.0f},  {1.0f,  0.0f}},
+        {{ 0.2f,  0.2f,   0.2f},  {0.0f,  1.0f,  0.0f},  {1.0f,  0.0f}},
+        {{-0.2f,  0.2f,   0.2f},  {0.0f,  1.0f,  0.0f},  {0.0f,  0.0f}},
+        {{-0.2f,  0.2f,  -0.2f},  {0.0f,  1.0f,  0.0f},  {0.0f,  1.0f}}
     };
 
 bool running = true;
@@ -154,16 +144,26 @@ auto draw_loop() -> void {
   auto bind_group = pipeline.create_bind_group();
   auto vertices = gfx::Vector<Vertex>(cGPU, cVertices.size());
   auto event_handler = gfx::EventRegister();
-
+  
   img.upload(DEFAULT_bmp + cBMPImageHeaderOffset);
 
-  event_handler.add([](const gfx::Event& event){if(event.type() == gfx::Event::Type::WindowExit) running = false;});
+  auto event_cb = [&transforms](const gfx::Event& event) {
+    constexpr auto cOffsetAmt = 0.01;
+    if(event.type() == gfx::Event::Type::WindowExit) running = false;
+    switch(event.key()) {
+      case gfx::Key::Up : transforms->offset += cOffsetAmt; break;
+      case gfx::Key::Down : transforms->offset -= cOffsetAmt; break;
+      default: break;
+    };
+  };
+
+  event_handler.add(event_cb);
   gpu_transforms.map(&transforms);
   vertices.upload(cVertices.data());
   bind_group.set(gpu_transforms, "transform");
   bind_group.set(img, "cube_texture");
-  transforms->model = 0;//glm::mat4(1.0f);
-
+  transforms->model = 0;
+  transforms->offset = 0.4f;
   auto start_time = std::chrono::system_clock::now();
   auto rot = 0.0f;
   while(running) {
@@ -172,12 +172,12 @@ auto draw_loop() -> void {
     auto time_in_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(time_since_start);
     rot += ((static_cast<float>(time_in_seconds.count()) / 1000.0f));
     start_time = std::chrono::system_clock::now();
-    transforms->model = rot;//glm::rotate(glm::mat4(1.0f), rot, glm::vec3(1.0f, 0.3f, 0.5f));
+    transforms->model = rot;
 
     // Combo next gpu action to the cmd list.
     window.combo_into(cmd);
     window.acquire();
-
+    
     // Draw some stuff...
     cmd.begin();
     cmd.start_draw(rp, window.current_frame());
