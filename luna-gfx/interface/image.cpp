@@ -36,6 +36,13 @@ auto Image::upload_raw(const unsigned char* ptr) -> void {
     luna::vulkan::destroy_cmd(cmd);
 }
 
+auto ImageView::name() const -> std::string {
+  LunaAssert(this-m_handle >= 0, "Cannot access an invalid image view!");
+  auto& res = vulkan::global_resources();
+  auto& img = res.images[this->m_handle];
+  return img.info.name;
+}
+
 auto ImageView::format() const -> ImageFormat {
   LunaAssert(this-m_handle >= 0, "Cannot access an invalid image view!");
   auto& res = vulkan::global_resources();

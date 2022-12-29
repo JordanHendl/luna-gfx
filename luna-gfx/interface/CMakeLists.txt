@@ -1,6 +1,7 @@
 find_package(SDL2 REQUIRED)
 set(luna_gfx_interface_sources buffer.cpp
                                image.cpp
+                               device.cpp
                                render_pass.cpp
                                pipeline.cpp
                                bind_group.cpp

@@ -72,6 +72,33 @@ TEST(Interface, CreateWindow) {
   EXPECT_GE(window.handle(), 0);
 }
 
+TEST(Interface, FramebufferCreator) {
+  constexpr auto cGPU = 0;
+  constexpr auto cWidth = 1280u;
+  constexpr auto cHeight = 1024u;
+  constexpr auto format1 = gfx::ImageFormat::RGBA8;
+  constexpr auto format2 = gfx::ImageFormat::RGBA8;
+  constexpr auto format3 = gfx::ImageFormat::RGBA8;
+
+  auto fb_creator = gfx::FramebufferCreator(cGPU, cWidth, cHeight, {
+    {"first", format1},
+    {"second", format2},
+    {"third", format3}
+  });
+
+  auto views = fb_creator.views();
+
+  constexpr auto cNumAttachments = 3;
+  constexpr auto cNumBuffers = 3;
+  EXPECT_EQ(views.size(), cNumAttachments);
+
+  for(auto& fb : views) {
+    auto correct_name = (fb.first == std::string("first") || fb.first == std::string("second") || fb.first == std::string("third"));
+    EXPECT_TRUE(correct_name);
+    EXPECT_EQ(fb.second.size(), cNumBuffers);
+  }
+}
+
 TEST(Interface, CreateRenderPass) {
   constexpr auto cGPU = 0;
   constexpr auto cWidth = 1280u;

@@ -52,7 +52,6 @@ namespace gfx {
     vulkan::cmd_end_render_pass(this->m_handle);
   }
 
-
   auto CommandList::begin() -> void {
     LunaAssert(this->m_handle >= 0, "Unable to begin an invalid command buffer.");
     vulkan::begin_command_buffer(this->m_handle);
@@ -71,7 +70,7 @@ namespace gfx {
       return true;
     };
 
-    return std::async(std::launch::async, wait_func, this->m_handle);
+    return std::async(std::launch::deferred, wait_func, this->m_handle);
   }
 
   auto CommandList::combo_into(const Window& window) -> void {

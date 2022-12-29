@@ -75,14 +75,20 @@ const std::vector<Vertex> cVertices = {
 bool running = true;
 
 namespace luna {
-auto init_graphics_pipeline() -> void {
-  window = gfx::Window(gfx::WindowInfo());
-  auto info = gfx::RenderPassInfo();
+
+auto create_g_buffer_subpass() -> gfx::Subpass {
   auto subpass = gfx::Subpass();
   auto attachment = gfx::Attachment();
 
-  // Set up the color attachment (writing to the window's image buffers)
+  
+}
+auto init_graphics_pipeline() -> void {
+  auto renderer_info = gfx::DeferredRendererInfo();
+  auto subpass = gfx::Subpass();
+  auto attachment = gfx::Attachment();
   attachment.clear_color = cClearColors;
+
+  // Set up the color attachment (writing to the window's image buffers)
   attachment.views = window.image_views();
   subpass.attachments.push_back(attachment);
 

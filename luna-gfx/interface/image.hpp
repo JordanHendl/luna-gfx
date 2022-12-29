@@ -69,6 +69,7 @@ public:
   ~ImageView() = default;
   auto operator=(const Image& ref) -> ImageView& {this->m_handle = ref.handle(); return *this;}
   [[nodiscard]] auto handle() const -> std::int32_t {return this->m_handle;}
+  [[nodiscard]] auto name() const -> std::string;
   [[nodiscard]] auto format() const -> ImageFormat;
   [[nodiscard]] auto width() const -> std::size_t;
   [[nodiscard]] auto height() const -> std::size_t;

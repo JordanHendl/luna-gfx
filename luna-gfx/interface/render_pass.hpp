@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <utility>
+#include <unordered_map>
 namespace luna {
 namespace gfx {
 class Window;
@@ -19,8 +20,10 @@ struct Attachment {
 };
 
 struct Subpass {
+  std::string name = "subpass";
   std::vector<Attachment> attachments = {};
-  std::vector<size_t> dependancies = {};
+  //                 subpass      attachment
+  std::unordered_map<std::string, std::string> dependencies;
   float depth_clear = 0.0f;
   bool enable_depth = true;
 };
@@ -30,6 +33,19 @@ struct RenderPassInfo {
   size_t width = 1280;
   size_t height = 1024;
   std::vector<Subpass> subpasses = {};
+};
+
+// Helper class to create and own framebuffers for render pass usage.
+class FramebufferCreator {
+public:
+  FramebufferCreator() = default;
+  FramebufferCreator(int gpu, std::size_t width, std::size_t height, std::unordered_map<std::string, gfx::ImageFormat> requested_framebuffers);
+  FramebufferCreator(FramebufferCreator&& mv) = default;
+  ~FramebufferCreator() = default;
+  auto views() -> std::unordered_map<std::string, std::vector<gfx::ImageView>>;
+  auto operator=(FramebufferCreator&& mv) -> FramebufferCreator& = default;
+private:
+  std::vector<gfx::Image> m_images;
 };
 
 class RenderPass {

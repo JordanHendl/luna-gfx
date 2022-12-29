@@ -13,7 +13,7 @@ struct ForwardRendererInfo {
 struct DeferredRendererInfo {
   std::optional<WindowInfo> window_info;
   RenderPassInfo render_pass_info;
-  PipelineInfo pipeline_info;
+  GraphicsPipelineInfo pipeline_info;
 };
 
 class DeferredRenderer {
@@ -23,7 +23,7 @@ public:
   DeferredRenderer(DeferredRenderer&& mv) = default;
   ~DeferredRenderer();
   [[nodiscard]] auto next() -> CommandList&;
-  [[nodiscard]] inline auto pass() const -> const RenderPass {return this->m_pass;}
+  [[nodiscard]] inline auto pass() const -> const RenderPass& {return this->m_pass;}
   [[nodiscard]] inline auto window() const -> const std::optional<Window>& {return this->m_window;}
   [[nodiscard]] inline auto pipeline() const -> const GraphicsPipeline& {return this->m_pipeline;}
 private:

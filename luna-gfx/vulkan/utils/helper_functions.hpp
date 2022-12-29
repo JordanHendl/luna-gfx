@@ -44,10 +44,23 @@ inline auto size_from_format(gfx::ImageFormat fmt) -> size_t {
   }
 }
 
+
+inline auto synchronize_cmd(int32_t cmd_id) -> void {
+  auto& cmd = luna::vulkan::global_resources().cmds[cmd_id];
+  auto& gpu = luna::vulkan::global_resources().devices[cmd.gpu];
+  
+  if(cmd.fence && cmd.signaled) {
+    error(gpu.gpu.waitForFences(1, &cmd.fence, true, UINT64_MAX, gpu.m_dispatch));
+    error(gpu.gpu.resetFences(1, &cmd.fence, gpu.m_dispatch));
+    cmd.signaled = false;
+  }
+}
+
 inline auto begin_command_buffer(int32_t handle) -> void {
   LunaAssert(handle >= 0, "Attempting to use an invalid command buffer.");
   auto& cmd = luna::vulkan::global_resources().cmds[handle];
   auto& gpu = luna::vulkan::global_resources().devices[cmd.gpu];
+  luna::vulkan::synchronize_cmd(handle);
   luna::vulkan::error(cmd.cmd.begin(cmd.begin_info, gpu.m_dispatch));
 }
 
@@ -125,22 +138,11 @@ inline auto create_cmd(int gpu, gfx::Queue type = gfx::Queue::All, CommandBuffer
   return index;
 }
 
-inline auto synchronize_cmd(int32_t cmd_id) -> void {
-  auto& cmd = luna::vulkan::global_resources().cmds[cmd_id];
-  auto& gpu = luna::vulkan::global_resources().devices[cmd.gpu];
-  
-  if(cmd.fence && cmd.signaled) {
-    error(gpu.gpu.waitForFences(1, &cmd.fence, true, UINT64_MAX, gpu.m_dispatch));
-    error(gpu.gpu.resetFences(1, &cmd.fence, gpu.m_dispatch));
-    cmd.signaled = false;
-  }
-}
-
 inline auto destroy_cmd(int32_t handle) -> void {
   auto& res = global_resources();
   auto& cmd = res.cmds[handle];
   auto& gpu = res.devices[cmd.gpu];
-  if(cmd.signaled) synchronize_cmd(handle);
+  synchronize_cmd(handle);
   if(cmd.timestamp_pool) {
     gpu.gpu.destroy(cmd.timestamp_pool, gpu.allocate_cb, gpu.m_dispatch);
     cmd.timestamp_pool = nullptr;

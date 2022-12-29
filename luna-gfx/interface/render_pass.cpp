@@ -5,6 +5,30 @@
 #include <utility>
 namespace luna {
 namespace gfx {
+
+  FramebufferCreator::FramebufferCreator(int gpu, std::size_t width, std::size_t height, std::unordered_map<std::string, gfx::ImageFormat> requested_framebuffers) {
+    auto info = gfx::ImageInfo();
+    info.width = width;
+    info.height = height;
+
+    for(auto& attachment : requested_framebuffers) {
+      info.name = attachment.first;
+      info.format = attachment.second;
+
+      for(auto i = 0; i < 3; i++) {
+        this->m_images.push_back(gfx::Image(info));
+      }
+    }
+  }
+
+  auto FramebufferCreator::views() -> std::unordered_map<std::string, std::vector<gfx::ImageView>> {
+    auto map = std::unordered_map<std::string, std::vector<gfx::ImageView>>();
+    for(auto& img : this->m_images) {
+      map[img.info().name].push_back(img);
+    }
+    return map;
+  }
+
   RenderPass::RenderPass(RenderPassInfo info) {
     LunaAssert(info.gpu >= 0, "Cannot accept a negative gpu value.");
     auto& res = vulkan::global_resources();
