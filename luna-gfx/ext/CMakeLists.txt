@@ -1,4 +1,5 @@
 set(luna_gfx_ext_srcs 
+  camera.cpp
   image_loader.cpp
 )
 

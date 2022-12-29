@@ -182,7 +182,7 @@ TEST(Interface, CreateRenderPipeline) {
   EXPECT_GE(pipeline.handle(), 0);
 }
 
-TEST(Interface, CreateCommandBuffer) {
+TEST(Interface, CreateCommandList) {
   constexpr auto cGPU = 0;
   auto cmd = gfx::CommandList(cGPU); 
   EXPECT_GE(cmd.handle(), 0);
@@ -246,7 +246,7 @@ TEST(Interface, InitializeBufferWithData) {
   buffer.unmap();
 }
 
-TEST(Interface, CommandBufferCopyBufferToBuffer) {
+TEST(Interface, CommandListCopyBufferToBuffer) {
   constexpr auto cGPU = 0;
   constexpr auto cSize = 1024;
   constexpr auto cExpectedValue = 255;
@@ -276,7 +276,7 @@ TEST(Interface, CommandBufferCopyBufferToBuffer) {
   }
 }
 
-TEST(Interface, CommandBufferDraw) {
+TEST(Interface, CommandListDraw) {
   /** Lots of work to draw something! Maybe make an object to make this go faster to write?
    * 
    * ... but at the same time, this gives you a lot of fine-grain detail. So idk.
@@ -342,7 +342,7 @@ TEST(Interface, CommandBufferDraw) {
   EXPECT_GE(pipeline.handle(), 0);
 }
 
-TEST(Interface, CommandBufferTiming) {
+TEST(Interface, CommandListTiming) {
   constexpr auto cGPU = 0;
   constexpr auto cSize = 1024;
   constexpr auto cNumIterations = 2048;
@@ -366,7 +366,7 @@ TEST(Interface, CommandBufferTiming) {
   EXPECT_TRUE(in_range(cMinTimeMillis, cMaxTimeMillis, time_in_millis.count()));
 }
 
-TEST(Interface, CommandBufferCombos) {
+TEST(Interface, CommandListCombos) {
   constexpr auto cGPU = 0;
   constexpr auto cSize = 1024;
   constexpr auto cExample1 = 10.0f;
@@ -425,7 +425,7 @@ TEST(Interface, CommandBufferCombos) {
   check_vector_values(buf_d, cExample1);
 }
 
-TEST(Interface, CommandBufferDrawToWindow) {
+TEST(Interface, CommandListDrawToWindow) {
   constexpr auto cWidth = 1280u;
   constexpr auto cHeight = 1024u;
   constexpr auto cGPU = 0;

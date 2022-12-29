@@ -1,25 +1,9 @@
 #include "luna-gfx/gfx.hpp"
+#include "luna-gfx/ext/ext.hpp"
 #include <array>
 #include <vector>
 #include <iostream>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <chrono>
-
-#include "unit_tests/raw_data/default_image.hpp"
-#include "draw_vert.hpp"
-#include "draw_frag.hpp"
-
-struct vec3 {
-  float x;
-  float y;
-  float z;
-};
-
-struct vec2 {
-  float x;
-  float y;
-};
 
 struct Vertex {
   vec3 position;
@@ -27,25 +11,26 @@ struct Vertex {
   vec2 tex_coord;
 };
 
-
 struct Transformations {
-  float model;
-  float offset;
+  luna::mat4 model;
 };
 
 static_assert(sizeof(Vertex) == (sizeof(float) * 8));
-static_assert(sizeof(vec3) == (sizeof(float) * 3));
-static_assert(sizeof(Transformations) == (sizeof(float) * 2));
+static_assert(sizeof(Transformations) == sizeof(luna::mat4));
 
-luna::gfx::Window window;
-luna::gfx::RenderPass rp;
-luna::gfx::GraphicsPipeline pipeline;
-std::vector<luna::gfx::Image> depth_images;
+struct DefferedTestData {
+  luna::gfx::Window window;
+  luna::gfx::RenderPass rp;
+  luna::gfx::GraphicsPipeline pipeline;
+  std::vector<luna::gfx::Image> depth_images;
+};
+
 constexpr auto cWidth = 1280u;
 constexpr auto cHeight = 1024u;
 constexpr auto cGPU = 0;
 constexpr auto cClearColors = std::array<float, 4>{0.0f, 0.2f, 0.2f, 1.0f};
 constexpr auto cBMPImageHeaderOffset = 54;
+std::unique_ptr<DefferedTestData> data;
 
 const std::vector<Vertex> cVertices = {
         // positions          // normals           // texture coords

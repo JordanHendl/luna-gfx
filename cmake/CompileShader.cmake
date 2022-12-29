@@ -46,20 +46,25 @@ function(compile_shader)
 
         # Build Spirv
         if(HAS_GLSLANG_VALIDATOR)
-        message( "glslangValidator -V -o ${file_name}_${extension}.hpp --vn ${file_name} ${CMAKE_CURRENT_SOURCE_DIR}/${ARG}")
+
+        set(src_file ${SHADER_DIR}/${file_name}_${extension}.hpp)
+        set(compile_command glslangValidator -V -o ${file_name}_${extension}.hpp --vn ${file_name}_${extension} ${CMAKE_CURRENT_SOURCE_DIR}/${ARG})
+        set(new_target ${ARG}_compiled)
         # Compile SPIRV
         add_custom_command(
             POST_BUILD
-            OUTPUT ${file_name}_${extension}.hpp
-            COMMAND glslangValidator -V -o ${file_name}_${extension}.hpp --vn ${file_name}_${extension} ${CMAKE_CURRENT_SOURCE_DIR}/${ARG} 
+            OUTPUT ${src_file}
+            COMMAND ${compile_command}
             WORKING_DIRECTORY ${SHADER_DIR}
             DEPENDS ${ARG}
           )
 
           add_custom_target(
-            ${ARG}_compiled ALL
-            DEPENDS ${file_name}_${extension}.hpp
+            ${new_target} ALL
+            DEPENDS ${src_file}
           )
+
+          add_dependencies(shader_compilation ${ARG}_compiled)
         endif()
       endforeach()
     endif()

@@ -5,6 +5,8 @@ macro(AddTest test_file)
   add_executable(${test_name} ${test_file})
   target_link_libraries(${test_name} GTest::GTest luna_gfx)
   target_include_directories(${test_name} PUBLIC ${SHADER_DIR})
+  # Instead of knowing what each test uses for shaders, we just wait for all shaders to compile before compiling tests.
+  add_dependencies(${test_name} shader_compilation)
   add_test(NAME ${test_name} COMMAND ${test_name})
 endmacro()
 
@@ -16,6 +18,7 @@ if(GTest_FOUND)
   AddTest(test_vulkan_wrappers.cpp)
   AddTest(test_vulkan_utils.cpp)
   AddTest(test_interface.cpp)
+  AddTest(test_extension.cpp)
 endif()
 
 find_package(Threads)

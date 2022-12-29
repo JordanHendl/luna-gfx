@@ -6,6 +6,7 @@
 namespace luna {
 namespace gfx {
 
+/**
 struct QuickPSO {
   enum class FramebufferType {
     GBuffer,
@@ -122,5 +123,6 @@ auto quick_deferred_render_pass() -> gfx::RenderPass {
   auto rp = gfx::RenderPass();
   return rp;
 }
+*/
 }
 }
