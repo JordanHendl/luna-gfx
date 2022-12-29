@@ -20,7 +20,7 @@ struct Attachment {
 };
 
 struct Subpass {
-  std::string name = "subpass";
+  std::string name = "Default";
   std::vector<Attachment> attachments = {};
   //                 subpass      attachment
   std::unordered_map<std::string, std::string> dependencies;

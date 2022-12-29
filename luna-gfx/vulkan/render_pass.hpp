@@ -66,6 +66,7 @@ class RenderPass {
     std::vector<Subpass> m_subpasses;
     std::vector<vk::Framebuffer> m_framebuffers;
     std::vector<vk::AttachmentDescription> m_attachments;
+    std::vector<vk::SubpassDependency> m_dependencies;
     Device* m_device;
     vk::RenderPass m_pass;
     vk::Rect2D m_area;
@@ -75,7 +76,7 @@ class RenderPass {
     size_t m_num_binded_subpasses;
     size_t m_current_subpass = 0;
 
-    auto add_subpass(const gfx::Subpass& subpass) -> void;
+    auto add_subpass(const gfx::Subpass& subpass, std::size_t index) -> void;
     auto parse_info(const gfx::RenderPassInfo& info) -> void;
     auto make_render_pass() -> void;
     auto make_images() -> void;

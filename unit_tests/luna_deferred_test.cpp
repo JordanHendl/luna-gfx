@@ -5,24 +5,33 @@
 #include <iostream>
 #include <chrono>
 
+#include "g_buffer_vert.hpp"
+#include "g_buffer_frag.hpp"
+
+#include "deferred_vert.hpp"
+#include "deferred_frag.hpp"
+
 struct Vertex {
-  vec3 position;
-  vec3 normal;
-  vec2 tex_coord;
+  luna::vec3 position;
+  luna::vec3 normal;
+  luna::vec2 tex_coord;
 };
 
+
 struct Transformations {
-  luna::mat4 model;
+  float model;
+  float offset;
 };
 
 static_assert(sizeof(Vertex) == (sizeof(float) * 8));
-static_assert(sizeof(Transformations) == sizeof(luna::mat4));
+static_assert(sizeof(Transformations) == (sizeof(float) * 2));
 
-struct DefferedTestData {
+struct DeferredTestData {
   luna::gfx::Window window;
   luna::gfx::RenderPass rp;
-  luna::gfx::GraphicsPipeline pipeline;
-  std::vector<luna::gfx::Image> depth_images;
+  luna::gfx::GraphicsPipeline gbuffer_pipe;
+  luna::gfx::GraphicsPipeline final_pipe;
+  luna::gfx::FramebufferCreator first_pass;
 };
 
 constexpr auto cWidth = 1280u;
@@ -30,7 +39,8 @@ constexpr auto cHeight = 1024u;
 constexpr auto cGPU = 0;
 constexpr auto cClearColors = std::array<float, 4>{0.0f, 0.2f, 0.2f, 1.0f};
 constexpr auto cBMPImageHeaderOffset = 54;
-std::unique_ptr<DefferedTestData> data;
+
+std::unique_ptr<DeferredTestData> data;
 
 const std::vector<Vertex> cVertices = {
         // positions          // normals           // texture coords
@@ -75,128 +85,90 @@ const std::vector<Vertex> cVertices = {
 bool running = true;
 
 namespace luna {
-
-auto create_g_buffer_subpass() -> gfx::Subpass {
+auto create_first_subpass() -> gfx::Subpass {
   auto subpass = gfx::Subpass();
   auto attachment = gfx::Attachment();
 
-  
+  data->first_pass = gfx::FramebufferCreator(cGPU, data->window.info().width, data->window.info().height, 
+  {
+    {"position", gfx::ImageFormat::RGBA8},
+    {"normal", gfx::ImageFormat::RGBA8},
+    {"albedo", gfx::ImageFormat::RGBA8},
+    {"depth", gfx::ImageFormat::Depth}
+  });
+
+  subpass.name = "GBufferPass";
+  subpass.attachments.push_back({data->first_pass.views()["position"], cClearColors});
+  subpass.attachments.push_back({data->first_pass.views()["normal"], cClearColors});
+  subpass.attachments.push_back({data->first_pass.views()["albedo"], cClearColors});
+  subpass.attachments.push_back({data->first_pass.views()["depth"], cClearColors});
+
+  return subpass;
 }
-auto init_graphics_pipeline() -> void {
-  auto renderer_info = gfx::DeferredRendererInfo();
+
+auto create_second_subpass() -> gfx::Subpass {
   auto subpass = gfx::Subpass();
   auto attachment = gfx::Attachment();
-  attachment.clear_color = cClearColors;
-
-  // Set up the color attachment (writing to the window's image buffers)
-  attachment.views = window.image_views();
-  subpass.attachments.push_back(attachment);
-
-  // Now, set up the depth attachments.
-  attachment.views.clear();
-  auto depth_img_info = gfx::ImageInfo();
-  depth_images.resize(window.image_views().size());
-  depth_img_info.format = luna::gfx::ImageFormat::Depth;
-  depth_img_info.width = window.info().width;
-  depth_img_info.height = window.info().height;
-  depth_img_info.gpu = cGPU;
-  attachment.clear_color = {1.0f, 1.0f, 1.0f, 1.0f};
-
-  // They need to be the same amount of buffers as the image attachments (probably triple-buffered)
-  for(auto& img : depth_images) {
-    img = std::move(luna::gfx::Image(depth_img_info));
-    attachment.views.push_back(img);
-  }
-
-  subpass.enable_depth = true;
-  subpass.attachments.push_back(attachment);
-  info.subpasses.push_back(subpass);
-  info.gpu = cGPU;
-  info.width = cWidth;
-  info.height = cHeight;
-
-  rp = gfx::RenderPass(info);
+  subpass.name = "FinalDraw";
+  subpass.attachments.push_back({data->window.image_views(), cClearColors});
+  subpass.dependencies.insert({"GBufferPass", "position"});
+  subpass.dependencies.insert({"GBufferPass", "normal"});
+  subpass.dependencies.insert({"GBufferPass", "albedo"});
   
+  return subpass;
+}
+
+auto create_gbuffer_pipeline() -> void {
+  // Create Graphics pipeline, attaching it to the render pass we created (pipeline outputs to the render pass)
   auto pipe_info = gfx::GraphicsPipelineInfo();
   pipe_info.gpu = cGPU;
   pipe_info.initial_viewport = {};
-  auto vert_shader = std::vector<uint32_t>(draw_vert, std::end(draw_vert));
-  auto frag_shader = std::vector<uint32_t>(draw_frag, std::end(draw_frag));
+  pipe_info.subpass = "GBufferPass";
+  auto vert_shader = std::vector<uint32_t>(g_buffer_vert, std::end(g_buffer_vert));
+  auto frag_shader = std::vector<uint32_t>(g_buffer_frag, std::end(g_buffer_frag));
   pipe_info.shaders = {{"vertex", luna::gfx::ShaderType::Vertex, vert_shader}, {"fragment", luna::gfx::ShaderType::Fragment, frag_shader}};
   pipe_info.details.depth_test = true;
-  pipeline = luna::gfx::GraphicsPipeline(rp, pipe_info);
+  data->gbuffer_pipe = luna::gfx::GraphicsPipeline(data->rp, pipe_info);
+}
+
+auto create_final_pipeline() -> void {
+  auto pipe_info = gfx::GraphicsPipelineInfo();
+  pipe_info.gpu = cGPU;
+  pipe_info.initial_viewport = {};
+  auto vert_shader = std::vector<uint32_t>(deferred_vert, std::end(deferred_vert));
+  auto frag_shader = std::vector<uint32_t>(deferred_frag, std::end(deferred_frag));
+  pipe_info.shaders = {{"vertex", luna::gfx::ShaderType::Vertex, vert_shader}, {"fragment", luna::gfx::ShaderType::Fragment, frag_shader}};
+  pipe_info.subpass = "FinalDraw";
+  data->final_pipe = luna::gfx::GraphicsPipeline(data->rp, pipe_info);
+}
+
+auto initialize() -> void {
+  data->window = gfx::Window(gfx::WindowInfo());
+  auto info = gfx::RenderPassInfo();
+  auto subpass = gfx::Subpass();
+  auto attachment = gfx::Attachment();
+
+  info.subpasses.push_back(create_first_subpass());
+  info.subpasses.push_back(create_second_subpass());
+
+  // Set the render area & GPU to make this render pass on.
+  info.gpu = cGPU;
+  info.width = cWidth;
+  info.height = cHeight;
+  data->rp = gfx::RenderPass(info);
+
+  create_gbuffer_pipeline();
+  create_final_pipeline();
 }
 
 auto draw_loop() -> void {
-  Transformations* transforms = nullptr;
-  auto img = gfx::Image({"Default_Image", 0, 1024, 1024}); // Name, gpu, width, height
-  auto gpu_transforms = gfx::Vector<Transformations>(cGPU, 1);
-  auto cmd = gfx::CommandList(cGPU);
-  auto bind_group = pipeline.create_bind_group();
-  auto vertices = gfx::Vector<Vertex>(cGPU, cVertices.size());
-  auto event_handler = gfx::EventRegister();
-  
-  img.upload(DEFAULT_bmp + cBMPImageHeaderOffset);
-
-  auto event_cb = [&transforms](const gfx::Event& event) {
-    constexpr auto cOffsetAmt = 0.01;
-    if(event.type() == gfx::Event::Type::WindowExit) running = false;
-    switch(event.key()) {
-      case gfx::Key::Up : transforms->offset += cOffsetAmt; break;
-      case gfx::Key::Down : transforms->offset -= cOffsetAmt; break;
-      default: break;
-    };
-  };
-
-  event_handler.add(event_cb);
-  gpu_transforms.map(&transforms);
-  vertices.upload(cVertices.data());
-  bind_group.set(gpu_transforms, "transform");
-  bind_group.set(img, "cube_texture");
-  transforms->model = 0;
-  transforms->offset = 0.4f;
-  auto start_time = std::chrono::system_clock::now();
-  auto rot = 0.0f;
-  while(running) {
-    // Update rotation
-    auto time_since_start = std::chrono::system_clock::now() - start_time;
-    auto time_in_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(time_since_start);
-    rot += ((static_cast<float>(time_in_seconds.count()) / 1000.0f));
-    start_time = std::chrono::system_clock::now();
-    transforms->model = rot;
-
-    // Combo next gpu action to the cmd list.
-    window.combo_into(cmd);
-    window.acquire();
-    
-    // Draw some stuff...
-    cmd.begin();
-    cmd.start_draw(rp, window.current_frame());
-    cmd.bind(bind_group);
-    cmd.viewport({});
-    cmd.draw(vertices);
-    cmd.end_draw();
-    cmd.end();
-
-    // Combo this cmd list submit (sending stuff to the GPU) into the window for it's next GPU operation.
-    cmd.combo_into(window);
-
-    // Submit CONSUMES the window combo.
-    auto fence = cmd.submit();
-
-    // CONSUMES the cmd combo.
-    // Present the window. Since it was combo'd into by the cmd, it will wait on the cmd to finish on the GPU before presenting.
-    window.present();
-
-    fence.wait();
-    // Wait for command to finish. Don't have to in realtime, but since this is looping we need to do so.
-    luna::gfx::poll_events();
-  }
 }
 }
 
 auto main(int argc, const char* argv[]) -> int {
-  luna::init_graphics_pipeline();
+  data = std::make_unique<DeferredTestData>();
+  luna::initialize();
   luna::draw_loop();
+  data = std::move(std::unique_ptr<DeferredTestData>());
   return 0;
 }

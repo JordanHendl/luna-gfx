@@ -112,10 +112,9 @@ auto RenderPass::operator=(RenderPass&& mv) -> RenderPass& {
 auto RenderPass::make_images() -> void {
 }
 
-auto RenderPass::add_subpass(const gfx::Subpass& in_subpass) -> void {
+auto RenderPass::add_subpass(const gfx::Subpass& in_subpass, std::size_t index) -> void {
   auto& res = global_resources();
-  this->m_subpasses.push_back({});
-  auto& subpass = this->m_subpasses.back();
+  auto& subpass = this->m_subpasses[index];
   subpass.desc.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics);
   
   for (auto index = 0u; index < in_subpass.attachments.size(); index++) {
@@ -132,7 +131,6 @@ auto RenderPass::add_subpass(const gfx::Subpass& in_subpass) -> void {
     color = attachment.clear_color;
     clear.setColor(color);
     reference.setAttachment(this->m_attachments.size());
-
     if(is_depth) {
       reference.setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
       subpass.depth = reference;  
@@ -147,6 +145,7 @@ auto RenderPass::add_subpass(const gfx::Subpass& in_subpass) -> void {
       subpass.color.push_back(reference);
     }
 
+    subpass.name = in_subpass.name;
     subpass.clear_values.push_back(clear);
     subpass.luna_attachments.push_back(in_subpass.attachments[index]);
     this->m_attachments.push_back(description);
@@ -155,9 +154,9 @@ auto RenderPass::add_subpass(const gfx::Subpass& in_subpass) -> void {
 }
 
 auto RenderPass::parse_info(const gfx::RenderPassInfo& info) -> void {
-  this->m_subpasses.reserve(info.subpasses.size());
-  for (auto& subpass : info.subpasses) {
-    this->add_subpass(subpass);
+  this->m_subpasses.resize(info.subpasses.size());
+  for(auto index = 0u; index < info.subpasses.size(); ++index) {
+    this->add_subpass(info.subpasses[index], index);
   }
 }
 
@@ -187,28 +186,25 @@ auto RenderPass::bind() -> void {
   auto num_buffers = this->m_subpasses[0].luna_attachments[0].views.size();
 
   for(auto index = 0u; index < num_buffers; index++) {
+    auto info = vk::FramebufferCreateInfo();
+    auto views = std::vector<vk::ImageView>();
+    views.reserve(this->m_attachments.size());
+    info.setWidth(this->m_area.extent.width);
+    info.setHeight(this->m_area.extent.height);
+    info.setAttachmentCount(this->m_attachments.size());
+    info.setLayers(1);
+    info.setRenderPass(this->m_pass);
     for(auto& subpass : this->m_subpasses) {
-        auto info = vk::FramebufferCreateInfo();
-        auto views = std::vector<vk::ImageView>();
-
-        info.setWidth(this->m_area.extent.width);
-        info.setHeight(this->m_area.extent.height);
-
-        info.setAttachmentCount(subpass.luna_attachments.size());
-        info.setLayers(1);
-        info.setRenderPass(this->m_pass);
-  
-        views.reserve(subpass.luna_attachments.size());
-        for(auto& attach : subpass.luna_attachments) {
-          LunaAssert(attach.views.size() == num_buffers, "All images in a render pass must have the same buffering (all must be single/double/triple buffered).");
-          views.push_back(res.images[attach.views[index].handle()].view);
-        };
-  
-        info.setAttachments(views);
-        auto fb = error(gpu->gpu.createFramebuffer(info, gpu->allocate_cb, gpu->m_dispatch));
-        this->m_framebuffers.push_back(fb);
-      }
+      for(auto& attach : subpass.luna_attachments) {
+        LunaAssert(attach.views.size() == num_buffers, "All images in a render pass must have the same buffering (all must be single/double/triple buffered).");
+        views.push_back(res.images[attach.views[index].handle()].view);
+      };
     }
+  
+    info.setAttachments(views);
+    auto fb = error(gpu->gpu.createFramebuffer(info, gpu->allocate_cb, gpu->m_dispatch));
+    this->m_framebuffers.push_back(fb);
   }
+}
 }  // namespace vulkan
 }  // namespace luna

@@ -52,6 +52,17 @@ Pipeline::Pipeline(Device& device, const gfx::ComputePipelineInfo& info) {
 
 Pipeline::Pipeline(RenderPass& pass, const gfx::GraphicsPipelineInfo& info)
 {
+  auto num_framebuffers = 0;
+  auto subpass_index = 0;
+  for(auto& subpass : pass.subpasses()) {
+    if(subpass.name == info.subpass) {
+      num_framebuffers = subpass.color.size();
+      this->m_subpass_id = subpass_index;
+    }
+    subpass_index++;
+  }
+
+  this->m_color_blend_attachments.resize(num_framebuffers);
   this->init_params();
   this->m_device      = pass.device() ;
   this->m_render_pass = &pass          ;
@@ -60,7 +71,6 @@ Pipeline::Pipeline(RenderPass& pass, const gfx::GraphicsPipelineInfo& info)
   this->m_pool.initialize( *this ) ;
 
   this->parse(info) ;
-  this->m_color_blend_info.setAttachments(this->m_color_blend_attachments); 
   this->createLayout();
   this->createPipeline();
 }
@@ -106,8 +116,6 @@ auto Pipeline::init_params() -> void {
 
   vk::ColorComponentFlags color_blend_mask;
 
-  this->m_color_blend_attachments.resize(1);
-
   color_blend_mask =
       (vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
        vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
@@ -130,18 +138,17 @@ auto Pipeline::init_params() -> void {
   this->m_multisample_info.setPSampleMask(&this->m_sample_mask);
   this->m_multisample_info.setRasterizationSamples(vk::SampleCountFlagBits::e1);
 
-  this->m_color_blend_attachments[0].setColorWriteMask(color_blend_mask);
-  this->m_color_blend_attachments[0].setBlendEnable(true);
-  this->m_color_blend_attachments[0].setSrcColorBlendFactor(
-      vk::BlendFactor::eSrcAlpha);
-  this->m_color_blend_attachments[0].setDstColorBlendFactor(
-      vk::BlendFactor::eOneMinusSrcAlpha);
-  this->m_color_blend_attachments[0].setColorBlendOp(vk::BlendOp::eAdd);
-  this->m_color_blend_attachments[0].setSrcAlphaBlendFactor(
-      vk::BlendFactor::eOne);
-  this->m_color_blend_attachments[0].setDstAlphaBlendFactor(
-      vk::BlendFactor::eZero);
-  this->m_color_blend_attachments[0].setAlphaBlendOp(vk::BlendOp::eAdd);
+  for(auto& color : this->m_color_blend_attachments) {
+    color.setColorWriteMask(color_blend_mask);
+    color.setBlendEnable(true);
+    color.setSrcColorBlendFactor(vk::BlendFactor::eSrcAlpha);
+    color.setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha);
+    color.setColorBlendOp(vk::BlendOp::eAdd);
+    color.setSrcAlphaBlendFactor(vk::BlendFactor::eOne);
+    color.setDstAlphaBlendFactor(vk::BlendFactor::eZero);
+    color.setAlphaBlendOp(vk::BlendOp::eAdd);
+  }
+  
 
   this->m_color_blend_info.setLogicOpEnable(false);
   this->m_color_blend_info.setLogicOp(vk::LogicOp::eCopy);
@@ -159,14 +166,6 @@ auto Pipeline::createLayout() -> void {
   auto desc_layout = vk::DescriptorSetLayout();
 
   desc_layout = this->m_shader->layout();
-
-  auto tmp = this->m_color_blend_attachments[0];
-  //      this->m_color_blend_attachments.resize(
-  //      this->m_shader->file().stages.size() ) ;
-
-  for (auto& attachment : this->m_color_blend_attachments) {
-    attachment = tmp;
-  }
 
   this->m_color_blend_info.setAttachments(this->m_color_blend_attachments);
 
@@ -211,7 +210,7 @@ auto Pipeline::createPipeline() -> void {
     graphics_info.setPColorBlendState(&this->m_color_blend_info);
     graphics_info.setPDepthStencilState(&this->m_depth_stencil_info);
     graphics_info.setRenderPass(this->m_render_pass->pass());
-
+    graphics_info.setSubpass(this->m_subpass_id);
     this->m_pipeline = error(device.createGraphicsPipeline(
         this->m_cache, graphics_info, alloc_cb, dispatch));
   } else {

@@ -52,6 +52,7 @@ class Pipeline {
   vk::PipelineDepthStencilStateCreateInfo m_depth_stencil_info;
   vk::SampleMask m_sample_mask;
   std::vector<vk::PipelineColorBlendAttachmentState> m_color_blend_attachments;
+  std::size_t m_subpass_id = 0;
 
   inline auto createLayout() -> void;
   inline auto createPipeline() -> void;

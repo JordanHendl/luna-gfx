@@ -67,6 +67,12 @@ struct GraphicsPipelineInfo {
 
   // The extra details of this pipeline. For advanced users.
   GraphicsPipelineDetails details;
+
+  // Name for debugging purposes.
+  std::string name = "Pipeline";
+
+  // Name of the subpass this object writes to.
+  std::string subpass = "Default";
 };
 
 struct ComputePipelineInfo {

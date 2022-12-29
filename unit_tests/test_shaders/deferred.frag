@@ -18,7 +18,7 @@ struct Light {
     float radius;
 };
 
-layout(binding = 10) uniform Camera {
+layout(binding = 13) uniform Camera {
   mat4 view;
   vec3 pos;
 } camera;
