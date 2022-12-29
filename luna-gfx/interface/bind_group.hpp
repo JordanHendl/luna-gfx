@@ -14,7 +14,7 @@ class BindGroup {
   public:
     BindGroup() {this->m_handle = -1;}
     ~BindGroup();
-    BindGroup(BindGroup&& mv) {*this = std::move(mv);};
+    BindGroup(BindGroup&& mv) {*this = std::move(mv);}
     BindGroup(const BindGroup& cpy) = delete;
     template<typename T>
     auto set(const Vector<T>& buffer, std::string_view str) -> bool {return this->set(buffer.buffer(), str);}

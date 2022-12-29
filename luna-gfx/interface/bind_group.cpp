@@ -6,6 +6,7 @@
 namespace luna {
 namespace gfx {
 BindGroup::~BindGroup() {
+  if(this->m_handle < 0) return;
   auto& res = vulkan::global_resources();
   auto& desc = res.descriptors[this->m_handle];
   desc = std::move(vulkan::Descriptor());

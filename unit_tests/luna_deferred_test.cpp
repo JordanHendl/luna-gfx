@@ -19,19 +19,25 @@ struct Vertex {
 
 
 struct Transformations {
-  float model;
-  float offset;
+  luna::mat4 model;
 };
 
 static_assert(sizeof(Vertex) == (sizeof(float) * 8));
-static_assert(sizeof(Transformations) == (sizeof(float) * 2));
+static_assert(sizeof(Transformations) == sizeof(luna::mat4));
 
 struct DeferredTestData {
+  luna::gfx::PerspectiveCamera camera;
+  luna::gfx::Vector<Transformations> transforms;
+  luna::gfx::Image diffuse;
+  luna::gfx::Image specular;
+
   luna::gfx::Window window;
   luna::gfx::RenderPass rp;
   luna::gfx::GraphicsPipeline gbuffer_pipe;
   luna::gfx::GraphicsPipeline final_pipe;
   luna::gfx::FramebufferCreator first_pass;
+  luna::gfx::BindGroup gbuffer_bg;
+  luna::gfx::BindGroup deferred_bg;
 };
 
 constexpr auto cWidth = 1280u;
@@ -142,6 +148,21 @@ auto create_final_pipeline() -> void {
   data->final_pipe = luna::gfx::GraphicsPipeline(data->rp, pipe_info);
 }
 
+auto create_uniforms() -> void {
+  data->gbuffer_bg = data->gbuffer_pipe.create_bind_group();
+  data->deferred_bg = data->final_pipe.create_bind_group();
+
+  data->diffuse = std::move(gfx::Image({"Diffuse", cGPU, data->window.info().width, data->window.info().height}));
+  data->specular = std::move(gfx::Image({"Diffuse", cGPU, data->window.info().width, data->window.info().height}));
+  data->transforms = std::move(gfx::Vector<Transformations>(cGPU, 1));
+
+  data->gbuffer_bg.set(data->diffuse, "texture_diffuse1");
+  data->gbuffer_bg.set(data->specular, "texture_specular1");
+  data->gbuffer_bg.set(data->transforms, "transform");
+
+  //data->deferred_bg.set("//")
+}
+
 auto initialize() -> void {
   data->window = gfx::Window(gfx::WindowInfo());
   auto info = gfx::RenderPassInfo();
@@ -162,9 +183,10 @@ auto initialize() -> void {
 }
 
 auto draw_loop() -> void {
+  //Transformations* transforms = nullptr;
+  //auto cmd = gfx::MultiBuffered<gfx::CommandList>(cGPU);
 }
 }
-
 auto main(int argc, const char* argv[]) -> int {
   data = std::make_unique<DeferredTestData>();
   luna::initialize();

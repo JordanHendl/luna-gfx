@@ -149,7 +149,6 @@ auto Pipeline::init_params() -> void {
     color.setAlphaBlendOp(vk::BlendOp::eAdd);
   }
   
-
   this->m_color_blend_info.setLogicOpEnable(false);
   this->m_color_blend_info.setLogicOp(vk::LogicOp::eCopy);
 

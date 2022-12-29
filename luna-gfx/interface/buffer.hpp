@@ -90,6 +90,8 @@ public:
   Vector(Vector&& mv) = default;
   Vector(const Vector& cpy) = delete;
   ~Vector() = default;
+  auto operator=(const Vector& cpy) -> Vector& = delete;
+  auto operator=(Vector&& mv) -> Vector& = default  ;
   [[nodiscard]] inline auto size() const -> std::size_t {return this->m_data.size() / sizeof(T);}
   [[nodiscard]] inline auto get_mapped_container() -> MappedBuffer<T> {return this->m_data.get_mapped_container<T>();}
   inline auto upload(const T* ptr, std::size_t amt) -> void {this->m_data.upload(ptr, amt);}
