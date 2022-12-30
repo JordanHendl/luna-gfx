@@ -48,7 +48,7 @@ function(compile_shader)
         if(HAS_GLSLANG_VALIDATOR)
 
         set(src_file ${SHADER_DIR}/${file_name}_${extension}.hpp)
-        set(compile_command glslangValidator -V -o ${file_name}_${extension}.hpp --vn ${file_name}_${extension} ${CMAKE_CURRENT_SOURCE_DIR}/${ARG})
+        set(compile_command glslangValidator -g -V -o ${file_name}_${extension}.hpp --vn ${file_name}_${extension} ${CMAKE_CURRENT_SOURCE_DIR}/${ARG})
         set(new_target ${ARG}_compiled)
         # Compile SPIRV
         add_custom_command(

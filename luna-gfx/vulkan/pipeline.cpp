@@ -140,7 +140,7 @@ auto Pipeline::init_params() -> void {
 
   for(auto& color : this->m_color_blend_attachments) {
     color.setColorWriteMask(color_blend_mask);
-    color.setBlendEnable(true);
+    color.setBlendEnable(false);
     color.setSrcColorBlendFactor(vk::BlendFactor::eSrcAlpha);
     color.setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha);
     color.setColorBlendOp(vk::BlendOp::eAdd);

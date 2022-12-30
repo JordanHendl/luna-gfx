@@ -25,5 +25,12 @@ auto BindGroup::set(const Image& image, std::string_view str) -> bool {
   auto& desc = res.descriptors[this->m_handle];
   return desc.bind(str, img);
 }
+
+auto BindGroup::set(const ImageView& image, std::string_view str) -> bool {
+  auto& res = vulkan::global_resources();
+  auto& img = res.images[image.handle()];
+  auto& desc = res.descriptors[this->m_handle];
+  return desc.bind(str, img);
+}
 }
 }

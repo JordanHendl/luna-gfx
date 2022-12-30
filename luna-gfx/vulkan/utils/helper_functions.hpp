@@ -161,12 +161,12 @@ inline auto cmd_start_render_pass(int32_t cmd_handle, int32_t rp_handle, size_t 
   auto& gpu = res.devices[cmd.gpu];
   auto& rp = res.render_passes[rp_handle];
 
-  const auto& curr_subpass = rp.current_subpass();
+  //const auto& curr_subpass = rp.current_subpass();
   auto info = vk::RenderPassBeginInfo();
   auto subpass = vk::SubpassContents::eInline;
   info.setRenderArea(rp.area());
   info.setRenderPass(rp.pass());
-  info.setClearValues(curr_subpass.clear_values);
+  info.setClearValues(rp.clear_values());
   info.setFramebuffer(rp.framebuffers()[framebuffer_id]);
   cmd.cmd.beginRenderPass(info, subpass, gpu.m_dispatch);
 }
@@ -176,6 +176,14 @@ inline auto cmd_end_render_pass(int32_t cmd_handle) -> void {
   auto& cmd = res.cmds[cmd_handle];
   auto& gpu = res.devices[cmd.gpu];
   cmd.cmd.endRenderPass(gpu.m_dispatch);
+}
+
+inline auto cmd_next_subpass(int32_t cmd_handle) -> void {
+  auto contents = vk::SubpassContents::eInline;
+  auto& res = global_resources();
+  auto& cmd = res.cmds[cmd_handle];
+  auto& gpu = res.devices[cmd.gpu];
+  cmd.cmd.nextSubpass(contents, gpu.m_dispatch);
 }
 
 inline auto cmd_bind_descriptor(int32_t cmd_handle, int32_t desc_handle) -> void {

@@ -76,6 +76,8 @@ class CommandList {
     auto draw(const MemoryBuffer& vertices, std::size_t num_verts, const MemoryBuffer& indices, std::size_t num_indices, std::size_t instance_count = 1) -> void;
     auto draw(const MemoryBuffer& vertices, std::size_t num_verts, std::size_t instance_count = 1) -> void;
 
+    auto next_subpass() -> void;
+    
     [[nodiscard]] auto queue() const {return this->m_type;}
     [[nodiscard]] auto handle() const {return this->m_handle;}
     auto operator=(CommandList&& mv) -> CommandList& {this->m_handle = mv.handle(); mv.m_handle = -1; return *this;};

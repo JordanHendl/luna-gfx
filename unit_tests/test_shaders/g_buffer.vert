@@ -26,5 +26,6 @@ void main()
   frag_tex_coords = in_tex_coords;
   mat3 normal_matrix = transpose(inverse(mat3(transform.transform)));
   frag_normal = normal_matrix * in_normal;
+  frag_normal = in_normal;
   gl_Position = camera.view * world_pos;
 }

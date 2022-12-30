@@ -148,6 +148,11 @@ namespace gfx {
     vulkan::start_timestamp(this->m_handle, vk::PipelineStageFlagBits::eTopOfPipe);
   }
 
+  auto CommandList::next_subpass() -> void {
+    LunaAssert(this->m_handle >= 0, "Unable to advance subpasses as an invalid command buffer.");
+    vulkan::cmd_next_subpass(this->m_handle);
+  }
+
   auto CommandList::end_time_stamp() -> std::future<std::chrono::duration<double, std::nano>> {
     LunaAssert(this->m_handle >= 0, "Unable to end a time stamp operation as an invalid command buffer.");
     vulkan::end_timestamp(this->m_handle, vk::PipelineStageFlagBits::eBottomOfPipe);

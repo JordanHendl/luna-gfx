@@ -42,6 +42,8 @@ class RenderPass {
     inline auto current_subpass() const -> const Subpass& {
       return this->m_subpasses[this->m_current_subpass];
     }
+
+    inline auto clear_values() -> std::vector<vk::ClearValue>& {return this->m_clear_values;}
     inline auto subpasses() const -> const std::vector<Subpass>& {
       return this->m_subpasses;
     }
@@ -67,6 +69,7 @@ class RenderPass {
     std::vector<vk::Framebuffer> m_framebuffers;
     std::vector<vk::AttachmentDescription> m_attachments;
     std::vector<vk::SubpassDependency> m_dependencies;
+    std::vector<vk::ClearValue> m_clear_values;
     Device* m_device;
     vk::RenderPass m_pass;
     vk::Rect2D m_area;
@@ -75,7 +78,7 @@ class RenderPass {
     size_t m_current_framebuffer;
     size_t m_num_binded_subpasses;
     size_t m_current_subpass = 0;
-
+    auto handle_dependencies(const gfx::RenderPassInfo& in_info) -> void;
     auto add_subpass(const gfx::Subpass& subpass, std::size_t index) -> void;
     auto parse_info(const gfx::RenderPassInfo& info) -> void;
     auto make_render_pass() -> void;

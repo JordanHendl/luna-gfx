@@ -9,6 +9,15 @@ layout(binding = 10) uniform sampler2D g_position;
 layout(binding = 11) uniform sampler2D g_normal;
 layout(binding = 12) uniform sampler2D g_albedo_spec;
 
+layout(binding = 13) uniform Camera {
+  mat4 view;
+  vec3 pos;
+} camera;
+
+layout(binding = 14) uniform Switch {
+  int which_layer;
+} layer;
+
 struct Light {
     vec3 position;
     vec3 color;
@@ -16,14 +25,7 @@ struct Light {
     float linear;
     float quadratic;
     float radius;
-};
-
-layout(binding = 13) uniform Camera {
-  mat4 view;
-  vec3 pos;
-} camera;
-
-Light base_light;
+} base_light;
 
 vec3 calculate_lighting() {
     // retrieve data from gbuffer
@@ -55,6 +57,15 @@ vec3 calculate_lighting() {
 
 void main()
 {    
-    vec3 lighting = calculate_lighting();
-    out_color = vec4(lighting, 1.0);
+  vec4 t_diffuse = texture(g_albedo_spec, frag_tex_coords);
+  vec3 lighting = calculate_lighting();
+  vec3 color = vec3(0, 0, 0);
+  switch(layer.which_layer) {
+    case 0: color = texture(g_position, frag_tex_coords).rgb; break;
+    case 1: color = texture(g_normal, frag_tex_coords).rgb; break;
+    case 2: color = texture(g_albedo_spec, frag_tex_coords).rgb; break;
+    case 3: color = vec3(texture(g_albedo_spec, frag_tex_coords).a); break;
+    default: color = vec3(1.0f, 1.0f, 1.0f);
+  }
+  out_color = vec4(color.xyz, 1.0);
 }

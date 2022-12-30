@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <utility>
 #include <memory>
+#include <set>
 
 namespace luna {
 namespace vulkan {
@@ -22,7 +23,8 @@ inline auto convert(const gfx::Attachment& attachment)
 
   auto is_depth = attachment.views[0].format() == gfx::ImageFormat::Depth;
   auto format = convert(attachment.views[0].format());
-  auto layout = vk::ImageLayout::eColorAttachmentOptimal;
+  //auto layout = vk::ImageLayout::eColorAttachmentOptimal;
+  auto layout = vk::ImageLayout::eGeneral;
   auto stencil_store = is_depth ? StoreOps::eStore : StoreOps::eDontCare;
   auto stencil_load = is_depth ? LoadOps::eLoad : LoadOps::eDontCare;
   auto load_op = LoadOps::eClear;  /// TODO make configurable
@@ -56,6 +58,7 @@ RenderPass::RenderPass(Device& device, const gfx::RenderPassInfo& info, Swapchai
   this->m_current_framebuffer = 0;
   this->m_swap = swap;
   this->parse_info(info);
+  this->handle_dependencies(info);
   this->make_render_pass();
   this->make_images();
   this->bind();
@@ -96,7 +99,7 @@ auto RenderPass::operator=(RenderPass&& mv) -> RenderPass& {
   this->m_surface = mv.m_surface;
   this->m_current_framebuffer = mv.m_current_framebuffer;
   this->m_num_binded_subpasses = mv.m_num_binded_subpasses;
-
+  this->m_clear_values = std::move(mv.m_clear_values);
   mv.m_framebuffers.clear();
   mv.m_subpasses.clear();
   mv.m_attachments.clear();
@@ -110,6 +113,35 @@ auto RenderPass::operator=(RenderPass&& mv) -> RenderPass& {
 }
 
 auto RenderPass::make_images() -> void {
+}
+
+auto RenderPass::handle_dependencies(const gfx::RenderPassInfo& in_info) -> void {
+  auto vk_dep = vk::SubpassDependency();
+  auto src_subpass = 0u;
+  auto dep_set = std::set<std::string>();
+  vk_dep.setSrcStageMask(vk::PipelineStageFlagBits::eTopOfPipe);
+  vk_dep.setDstStageMask(vk::PipelineStageFlagBits::eBottomOfPipe);
+  vk_dep.setSrcAccessMask(vk::AccessFlagBits::eNone);
+  vk_dep.setSrcAccessMask(vk::AccessFlagBits::eNone);
+  for(auto& subpass : in_info.subpasses) {
+    vk_dep.setDstSubpass(src_subpass);
+    src_subpass++;
+    for(auto& dep : subpass.dependencies) {
+      auto dst_subpass = 0u;
+      auto dep_name = dep.first;
+      for(auto& subpass : this->m_subpasses) {
+        if(subpass.name == dep_name) {
+          auto found = dep_set.find(subpass.name);
+          if(found != dep_set.end()) {
+            dep_set.insert(subpass.name);
+            vk_dep.setSrcSubpass(dst_subpass);
+          }
+          dst_subpass++;
+        }
+      }
+      this->m_dependencies.push_back(vk_dep);
+    }
+  }
 }
 
 auto RenderPass::add_subpass(const gfx::Subpass& in_subpass, std::size_t index) -> void {
@@ -138,7 +170,9 @@ auto RenderPass::add_subpass(const gfx::Subpass& in_subpass, std::size_t index) 
       clear.depthStencil.stencil = 0;
       subpass.desc.setPDepthStencilAttachment(std::addressof(*subpass.depth));
     } else if(is_color) {
-      reference.setLayout(vk::ImageLayout::eColorAttachmentOptimal);
+      reference.setLayout(vk::ImageLayout::eGeneral);
+
+      // From a window
       if(img.imported) {
         description.finalLayout = vk::ImageLayout::ePresentSrcKHR;
       }
@@ -147,6 +181,7 @@ auto RenderPass::add_subpass(const gfx::Subpass& in_subpass, std::size_t index) 
 
     subpass.name = in_subpass.name;
     subpass.clear_values.push_back(clear);
+    this->m_clear_values.push_back(clear);
     subpass.luna_attachments.push_back(in_subpass.attachments[index]);
     this->m_attachments.push_back(description);
   }
@@ -173,7 +208,7 @@ auto RenderPass::make_render_pass() -> void {
   auto* alloc_cb = this->m_device->allocate_cb;
 
   info.setAttachments(this->m_attachments);
-  //info.setDependencies(this->m_dependencies);
+  info.setDependencies(this->m_dependencies);
   info.setSubpasses(subpass_descriptions);
 
   this->m_pass = error(device.createRenderPass(info, alloc_cb, dispatch));
@@ -197,7 +232,9 @@ auto RenderPass::bind() -> void {
     for(auto& subpass : this->m_subpasses) {
       for(auto& attach : subpass.luna_attachments) {
         LunaAssert(attach.views.size() == num_buffers, "All images in a render pass must have the same buffering (all must be single/double/triple buffered).");
-        views.push_back(res.images[attach.views[index].handle()].view);
+        auto handle = attach.views[index].handle();
+        auto& img = res.images[handle];
+        views.push_back(img.view);
       };
     }
   

@@ -42,6 +42,7 @@ public:
   FramebufferCreator(int gpu, std::size_t width, std::size_t height, std::unordered_map<std::string, gfx::ImageFormat> requested_framebuffers);
   FramebufferCreator(FramebufferCreator&& mv) = default;
   ~FramebufferCreator() = default;
+  auto operator[](std::string name) -> std::vector<gfx::ImageView> {return this->views()[name];}
   auto views() -> std::unordered_map<std::string, std::vector<gfx::ImageView>>;
   auto operator=(FramebufferCreator&& mv) -> FramebufferCreator& = default;
 private:

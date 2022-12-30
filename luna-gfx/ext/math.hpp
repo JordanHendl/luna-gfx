@@ -1,40 +1,54 @@
 #pragma once 
 #include <cmath>
+#include <numeric>
 namespace luna {
 template<typename T>
 struct vec4_t {
-  vec4_t() = default;
-  vec4_t(T r, T g, T b, T a) : values{r, g, b, a} {};
+  T x, y, z, w;
 
-  union {
-    T x, y, z, w;
-    T values[4];
-  };
+  vec4_t() = default;
+  vec4_t(T r, T g, T b, T a) : x(r), y(g), z(b), w(a) {};
+
   constexpr auto length() const {return 4u;}
-  [[nodiscard]] auto operator[](std::size_t index) const -> const T& {return values[index];}
-  [[nodiscard]] auto operator[](std::size_t index) -> T& {return values[index];}
+  [[nodiscard]] auto operator[](std::size_t index) const -> const T& {return *(reinterpret_cast<const T*>(this) + index);}
+  [[nodiscard]] auto operator[](std::size_t index) -> T& {return *(reinterpret_cast<T*>(this) + index);}
 
   template<typename G>
   auto operator==(const G& cmp) const -> bool {
-    for(auto i = 0u; i < length(); ++i) {
-      if(values[i] != cmp[i]) return false;
-    }
+    if(this->x != cmp.x) return false;
+    if(this->y != cmp.y) return false;
+    if(this->z != cmp.z) return false;
+    if(this->w != cmp.w) return false;
     return true;
   }
 
-  template<typename G>
-  auto operator*(const G& val) -> vec4_t& {
-    for(auto index = 0u; index < length(); ++index) {
-      this->values[index] *= val[index];
-    }
+  auto operator-() -> vec4_t& {
+    this->x = -x;
+    this->y = -y;
+    this->z = -z;
+    this->w = -w;
     return *this;
   }
 
-  auto operator*(T val) -> vec4_t& {
-    for(auto index = 0u; index < length(); ++index) {
-      this->values[index] *= val;
-    }
-    return *this;
+  template<typename G>
+  auto operator*(const G& val) -> vec4_t {
+    auto tmp = vec4_t<T>();
+    tmp = *this;
+    tmp.x *= val.x;
+    tmp.y *= val.y;
+    tmp.z *= val.z;
+    tmp.w *= val.w;
+    return tmp;
+  }
+
+  auto operator*(T val) -> vec4_t {
+    auto tmp = vec4_t<T>();
+    tmp = *this;
+    tmp.x *= val;
+    tmp.y *= val;
+    tmp.z *= val;
+    tmp.w *= val;
+    return tmp;
   }
 
   template<typename G>
@@ -45,47 +59,55 @@ struct vec4_t {
   // We can become any type.
   template<typename G>
   auto operator=(const G& cpy) -> vec4_t& {
-    for(auto i = 0u; i < length(); ++i) {
-      values[i] = cpy[i];
-    }
+    this->x = cpy.x;
+    this->y = cpy.y;
+    this->z = cpy.z;
+    this->w = cpy.w;
     return *this;
   }
 };
 
 template<typename T>
 struct vec3_t {
-  union {
-    T x, y, z;
-    T values[3];
-  };
-
+  T x, y, z;
   vec3_t() = default;
-  vec3_t(T r, T g, T b) : values{r, g, b} {};
+  vec3_t(T r, T g, T b) : x(r), y(g), z(b) {};
 
   constexpr auto length() const {return 3u;}
-  [[nodiscard]] auto operator[](std::size_t index) const -> const T& {return values[index];}
-  [[nodiscard]] auto operator[](std::size_t index) -> T& {return values[index];}
+  [[nodiscard]] auto operator[](std::size_t index) const -> const T& {return *(reinterpret_cast<const T*>(this) + index);}
+  [[nodiscard]] auto operator[](std::size_t index) -> T& {return *(reinterpret_cast<T*>(this) + index);}
 
   template<typename G>
   auto operator==(const G& cmp) const -> bool {
-    for(auto i = 0u; i < length(); ++i) {
-      if(values[i] != cmp[i]) return false;
-    }
+    if(this->x != cmp.x) return false;
+    if(this->y != cmp.y) return false;
+    if(this->z != cmp.z) return false;
     return true;
   }
 
   template<typename G>
-  auto operator*(const G& val) -> vec3_t& {
-    for(auto index = 0u; index < length(); ++index) {
-      this->values[index] *= val[index];
-    }
-    return *this;
+  auto operator*(const G& val) -> vec3_t {
+    auto tmp = vec3_t<T>();
+    tmp = *this;
+    tmp.x *= val.x;
+    tmp.y *= val.y;
+    tmp.z *= val.z;
+    return tmp;
   }
 
-  auto operator*(T val) -> vec3_t& {
-    for(auto index = 0u; index < length(); ++index) {
-      this->values[index] *= val;
-    }
+  auto operator*(T val) -> vec3_t {
+    auto tmp = vec3_t<T>();
+    tmp = *this;
+    tmp.x *= val;
+    tmp.y *= val;
+    tmp.z *= val;
+    return tmp;
+  }
+
+  auto operator-() -> vec3_t& {
+    this->x = -x;
+    this->y = -y;
+    this->z = -z;
     return *this;
   }
 
@@ -97,9 +119,9 @@ struct vec3_t {
   // We can become any type.
   template<typename G>
   auto operator=(const G& cpy) -> vec3_t& {
-    for(auto i = 0u; i < length(); ++i) {
-      values[i] = cpy[i];
-    }
+    this->x = cpy.x;
+    this->y = cpy.y;
+    this->z = cpy.z;
     return *this;
   }
 };
@@ -168,10 +190,10 @@ auto dot(T a, T b) -> float {
 
 struct mat4 {
   mat4(float t = 1.0f) {
-    matrix[0] = {t, 0, 0, 0};
-    matrix[1] = {0, t, 0, 0};
-    matrix[2] = {0, 0, t, 0};
     matrix[3] = {0, 0, 0, t};
+    matrix[2] = {0, 0, t, 0};
+    matrix[1] = {0, t, 0, 0};
+    matrix[0] = {t, 0, 0, 0};
   }
 
   ~mat4() = default;
@@ -183,7 +205,7 @@ struct mat4 {
   auto operator==(const T& cmp) const -> bool {
     for(auto x = 0; x < 4; ++x) {
       for(auto y = 0; y < 4; ++y) {
-        if(matrix[x][y] != cmp[x][y]) return false;
+        if(std::fabs(matrix[x][y] - cmp[x][y]) > 0.001) return false;
       }
     }
     return true;
@@ -208,11 +230,45 @@ struct mat4 {
     vec4_t<float> matrix[4];
 };
 
+
+inline auto operator*(const mat4& a, const mat4& b) -> mat4 {
+  auto ret = mat4();
+  auto get_row = [&a](std::size_t index) {
+    auto row = vec4_t<float>();
+    row.x = a[0][index];
+    row.y = a[1][index];
+    row.z = a[2][index];
+    row.w = a[3][index];
+    return row;
+  };
+
+  auto set_row = [](auto& out, vec4_t<float> vec, std::size_t index) {
+    out[0][index] = vec.x;
+    out[1][index] = vec.y;
+    out[2][index] = vec.z;
+    out[3][index] = vec.w;
+  };
+
+  auto r1 = get_row(0);
+  auto r2 = get_row(1);
+  auto r3 = get_row(2);
+  auto r4 = get_row(3);
+  auto c1 = b[0];
+  auto c2 = b[1];
+  auto c3 = b[2];
+  auto c4 = b[3];
+  set_row(ret, {dot(r1, c1), dot(r1, c2), dot(r1, c3), dot(r1, c4)}, 0);
+  set_row(ret, {dot(r2, c1), dot(r2, c2), dot(r2, c3), dot(r2, c4)}, 1);
+  set_row(ret, {dot(r3, c1), dot(r3, c2), dot(r3, c3), dot(r3, c4)}, 2);
+  set_row(ret, {dot(r4, c1), dot(r4, c2), dot(r4, c3), dot(r4, c4)}, 3);
+  return ret;
+}
+
 template<typename T>
 auto perspective(T fovy, T aspect, T znear, T zfar) -> mat4
 {
 	T const tan_half_fov_y = std::tan(fovy / static_cast<T>(2));
-	mat4 res(static_cast<T>(0));
+	auto res = mat4(static_cast<T>(0));
 	res[0][0] = static_cast<T>(1) / (aspect * tan_half_fov_y);
 	res[1][1] = static_cast<T>(1) / (tan_half_fov_y);
 	res[2][2] = - (zfar + znear) / (zfar - znear);
