@@ -56,11 +56,13 @@ auto MemoryBuffer::gpu() const -> int {
 }
 
 auto MemoryBuffer::unmap() -> void {
-  if(is_mappable(this->m_type)) luna::vulkan::unmap_buffer(this->m_handle);
+  LunaAssert(is_mappable(this->m_type), "Attempting to unmap a buffer that is not mappable");
+  luna::vulkan::unmap_buffer(this->m_handle);
 }
 
 auto MemoryBuffer::map_impl(void** ptr) -> void {
-  if(is_mappable(this->m_type)) luna::vulkan::map_buffer(this->m_handle, ptr);
+  LunaAssert(is_mappable(this->m_type), "Attempting to map a buffer that is not mappable");
+  luna::vulkan::map_buffer(this->m_handle, ptr);
 }
 
 auto MemoryBuffer::upload_data_impl(const unsigned char* in_data, std::size_t num_bytes) -> void {
@@ -84,5 +86,10 @@ auto MemoryBuffer::upload_data_impl(const unsigned char* in_data, std::size_t nu
     luna::vulkan::destroy_cmd(cmd);
   }
 }
+
+void unmap_mapped_buffer(std::int32_t handle) {
+  luna::vulkan::unmap_buffer(handle);
+}
+
 }
 }
