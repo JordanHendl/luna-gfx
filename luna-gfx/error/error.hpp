@@ -6,15 +6,30 @@
 namespace luna {
 namespace vulkan {
 
+namespace assert_impl {
+inline auto _luna_assert_impl_variadic() -> void {}
+
+template <typename T>
+inline auto _luna_assert_impl_variadic(const T& t) -> void {
+     std::cout << t;
+}
+template <typename First, typename... Rest> 
+inline auto _luna_assert_impl_variadic(const First& first, const Rest&... rest) -> void {
+     std::cout << first;
+    _luna_assert_impl(rest...); // recursive call using pack expansion syntax
+}
 template<typename ...Args>
 inline auto _luna_assert_impl(Args ... args) {
-  {(std::cout << "----- ERROR ---- Assertion failed: " << ... << args); std::cout << "---- ERROR ----" << std::endl;}
+  std::cout << "----- ERROR ---- Assertion failed: ";
+  _luna_assert_impl_variadic(args...); 
+  std::cout << "---- ERROR ----" << std::endl;
+}
 }
 
-#define LunaAssert(cond, ...)       \
-  if (!(cond)) {                    \
-    luna::vulkan::_luna_assert_impl(__VA_ARGS__); \
-    assert(cond);                   \
+#define LunaAssert(cond, ...)                                  \
+  if (!(cond)) {                                               \
+    luna::vulkan::assert_impl::_luna_assert_impl(__VA_ARGS__); \
+    assert(cond);                                              \
   }
 //#else
 //#define LunaAssert(cond, description)

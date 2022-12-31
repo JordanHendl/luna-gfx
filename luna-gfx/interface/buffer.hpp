@@ -30,7 +30,7 @@ class MemoryBuffer {
     MemoryBuffer(MemoryBuffer&& mv) {*this = std::move(mv);};
     MemoryBuffer(const MemoryBuffer& cpy) = delete;
     auto unmap() -> void;
-
+    auto flush() -> void;
     template<typename T>
     auto map(T** ptr) -> void {
       if(this->type() == MemoryType::General || this->type() == MemoryType::CPUVisible) {
@@ -94,6 +94,7 @@ public:
   auto operator=(Vector&& mv) -> Vector& = default  ;
   [[nodiscard]] inline auto size() const -> std::size_t {return this->m_data.size() / sizeof(T);}
   [[nodiscard]] inline auto get_mapped_container() -> MappedBuffer<T> {return this->m_data.get_mapped_container<T>();}
+  inline auto flush() -> void {this->m_data.flush();}
   inline auto upload(const T* ptr, std::size_t amt) -> void {this->m_data.upload(ptr, amt);}
   inline auto upload(const T* ptr) -> void {this->m_data.upload(ptr, this->size());}
   inline auto upload(T data) -> void {this->m_data.upload(&data, &data);}
@@ -113,7 +114,7 @@ private:
 };
 
 template<typename T>
-struct MappedBuffer {
+class MappedBuffer {
 public:
   MappedBuffer() {begin_ = nullptr; end_ = nullptr;}
   ~MappedBuffer() {this->unmap_func_();}

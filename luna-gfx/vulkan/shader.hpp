@@ -12,7 +12,7 @@
 
 namespace luna {
 namespace vulkan {
-class Device;
+struct Device;
 class Shader {
  public:
   enum class InputRate {

@@ -399,7 +399,7 @@ inline auto create_buffer(int gpu, std::size_t size, vk::BufferUsageFlags usage,
   
   if(mappable) {
     alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
-    alloc_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+    alloc_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
   } else {
     alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
   }

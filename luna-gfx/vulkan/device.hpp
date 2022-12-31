@@ -9,7 +9,7 @@
 #include <vulkan/vulkan.hpp>
 namespace luna {
 namespace vulkan {
-class Instance;
+struct Instance;
 
 enum class HeapType : int {
   GpuOnly = 1 << 1,

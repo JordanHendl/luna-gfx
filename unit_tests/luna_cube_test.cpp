@@ -152,7 +152,8 @@ auto draw_loop() -> void {
     rot += ((static_cast<float>(time_in_seconds.count()) / 1000.0f));
     start_time = std::chrono::system_clock::now();
     transforms->model = rot;
-
+    gpu_transforms.flush(); 
+    
     // Combo next gpu action to the cmd list.
     window.combo_into(*cmd);
     window.acquire();

@@ -43,6 +43,13 @@ MemoryBuffer::~MemoryBuffer() {
   this->m_type = MemoryType::Unknown;
 }
 
+auto MemoryBuffer::flush() -> void {
+  auto& res = luna::vulkan::global_resources();
+  auto& buffer = res.buffers[this->m_handle];
+  auto& alloc = res.allocators[buffer.gpu];
+  vmaFlushAllocation(alloc, buffer.alloc, 0, VK_WHOLE_SIZE);
+}
+
 auto MemoryBuffer::gpu() const -> int {
   auto& res = vulkan::global_resources();
   return res.buffers[this->m_handle].gpu;

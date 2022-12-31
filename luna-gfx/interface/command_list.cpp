@@ -36,8 +36,8 @@ namespace gfx {
     vp.height = view.height;
     vp.minDepth = 0;
     vp.maxDepth = view.max_depth;
-    sc.extent.width = view.width;
-    sc.extent.height = view.height;
+    sc.extent.width = static_cast<std::size_t>(view.width);
+    sc.extent.height = static_cast<std::size_t>(view.height);
     cmd.cmd.setViewport(0, vp, gpu.m_dispatch);
     cmd.cmd.setScissor(0, sc, gpu.m_dispatch);
   }

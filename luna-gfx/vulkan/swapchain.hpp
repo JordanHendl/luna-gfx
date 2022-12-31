@@ -9,7 +9,7 @@
 #pragma once
 namespace luna {
 namespace vulkan {
-class CommandBuffer;
+struct CommandBuffer;
 /** Class for managing a Vulkan Swapchain.
  */
 class Swapchain {
@@ -66,6 +66,8 @@ class Swapchain {
   bool m_vsync;
   bool m_was_recreated = false;
   auto reset() -> void;
+
+  auto check_support() -> void;
 
   /** Method to return the mode for this swapchain, if it's available.
    * @param value The requested mode.

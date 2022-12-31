@@ -13,6 +13,7 @@ Swapchain::Swapchain(int32_t device, vk::SurfaceKHR surface, bool vsync) {
   this->m_surface = surface;
   this->m_vsync = vsync;
   this->m_current_frame = 0;
+  this->check_support();
   this->recreate();
   this->m_was_recreated = false; // Reset the flag set by ::recreate() because this is initialization.
 }
@@ -60,6 +61,13 @@ auto Swapchain::operator=(Swapchain&& mv) -> Swapchain& {
   mv.m_format = {};
 
   return *this;
+}
+
+auto Swapchain::check_support() -> void {
+  auto& res = global_resources();
+  auto& device = res.devices[this->m_gpu];
+  auto& queue = device.graphics();
+  error(device.physical_device.getSurfaceSupportKHR(queue.id, this->m_surface, device.m_dispatch));
 }
 
 auto Swapchain::reset() -> void {

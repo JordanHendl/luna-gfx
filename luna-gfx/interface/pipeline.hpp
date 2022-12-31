@@ -22,11 +22,11 @@ enum class Topology : int {
 /** Structure to describe a viewport into this pipeline's scene.
  */
 struct Viewport {
-  std::size_t width = 1280;
-  std::size_t height = 1024;
+  float width = 1280;
+  float height = 1024;
   std::size_t x_pos = 0;
   std::size_t y_pos = 0;
-  std::size_t max_depth = 1.0f;
+  float max_depth = 1.0f;
 };
 
 /** Structure to describe the specific details of a graphics pipeline. For use of advanced users who want to fine-tune their Graphicsing.
