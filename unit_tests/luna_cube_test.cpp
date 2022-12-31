@@ -144,16 +144,17 @@ auto draw_loop() -> void {
   transforms->model = 0;
   transforms->offset = 0.4f;
   auto start_time = std::chrono::system_clock::now();
-  auto rot = 0.0f;
+  auto rot = 0.0;
   while(running) {
     // Update rotation
     auto time_since_start = std::chrono::system_clock::now() - start_time;
     auto time_in_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(time_since_start);
-    rot += ((static_cast<float>(time_in_seconds.count()) / 1000.0f));
-    start_time = std::chrono::system_clock::now();
-    transforms->model = rot;
+    rot = ((static_cast<double>(time_in_seconds.count()) / 1000.0f));
+    transforms->model = static_cast<float>(rot);
     gpu_transforms.flush(); 
-    
+    std::cout << rot << std::endl;
+    gfx::synchronize_gpu(cGPU);
+
     // Combo next gpu action to the cmd list.
     window.combo_into(*cmd);
     window.acquire();
@@ -180,7 +181,7 @@ auto draw_loop() -> void {
     // Go to next command buffer while this one is in flight.
     cmd.advance();
 
-    //fence.wait();
+    fence.wait();
     // Wait for command to finish. Don't have to in realtime, but since this is looping we need to do so.
     luna::gfx::poll_events();
   }
