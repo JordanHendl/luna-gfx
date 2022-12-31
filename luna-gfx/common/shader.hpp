@@ -7,8 +7,8 @@
 
 namespace luna {
 namespace gfx {
-class GraphicsPipelineInfo;
-class ComputePipelineInfo;
+struct GraphicsPipelineInfo;
+struct ComputePipelineInfo;
 inline namespace v1 {
 /** Class to handle combining multiple glsl/hlsl shaders into a reflected binary
  * compacted with SPIR-V.

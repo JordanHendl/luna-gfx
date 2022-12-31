@@ -3,7 +3,7 @@ add_subdirectory(test_shaders)
 macro(AddTest test_file)
   get_filename_component(test_name ${test_file} NAME_WLE)
   add_executable(${test_name} ${test_file})
-  target_link_libraries(${test_name} GTest::GTest luna_gfx)
+  target_link_libraries(${test_name} GTest::GTest luna_gfx ${CONAN_LIBS})
   target_include_directories(${test_name} PUBLIC ${SHADER_DIR})
   # Instead of knowing what each test uses for shaders, we just wait for all shaders to compile before compiling tests.
   add_dependencies(${test_name} shader_compilation)

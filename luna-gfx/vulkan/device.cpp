@@ -156,6 +156,7 @@ auto Device::make_device(vk::DispatchLoaderDynamic& dispatch) -> void {
   info.setPpEnabledExtensionNames(extensions.data());
   info.setEnabledLayerCount(validation.size());
   info.setPpEnabledLayerNames(validation.data());
+  info.pNext = nullptr;
   //      info.setPNext                  ( &this->pnext_chain ) ;
   error(this->physical_device.createDevice(&info, this->allocate_cb, &this->gpu,
                                            dispatch));

@@ -184,61 +184,8 @@ class Includer : public shaderc::CompileOptions::IncluderInterface {
                                                shaderc_include_type type,
                                                const char* requesting_source,
                                                size_t include_depth)  -> shaderc_include_result* {
-    auto stream = std::ifstream(requesting_source);
-    std::cout << "includer source: " << requesting_source << " depth: " << include_depth <<  std::endl;
-    auto result = new shaderc_include_result();
-    auto data_container = new std::array<std::string, 2>();
-    //(*data_container)[1] = requesting_source;
-    switch(type) {
-      case shaderc_include_type::shaderc_include_type_relative: {
-        auto path = std::filesystem::absolute(requested_source);
-        auto stream = std::ifstream(path);
-
-        (*data_container)[0] = path.c_str();
-        if (stream) {
-          auto& tmp = (*data_container)[1];
-          stream.seekg(0, std::ios::end);
-          tmp.reserve(stream.tellg());
-          stream.seekg(0, std::ios::beg);
-    
-          tmp.assign((std::istreambuf_iterator<char>(stream)),
-                     std::istreambuf_iterator<char>());
-          
-          stream.close();
-        } else {
-          throw std::runtime_error("Include Error: Failed to find file " + std::string(requesting_source));
-        }
-      }
-        break;
-      case shaderc_include_type::shaderc_include_type_standard: {
-        auto path = std::filesystem::absolute(requested_source);
-        (*data_container)[0] = path.c_str();
-        if (stream) {
-          auto& tmp = (*data_container)[1];
-          stream.seekg(0, std::ios::end);
-          tmp.reserve(stream.tellg());
-          stream.seekg(0, std::ios::beg);
-    
-          tmp.assign((std::istreambuf_iterator<char>(stream)),
-                     std::istreambuf_iterator<char>());
-          
-          stream.close();
-        } else {
-          throw std::runtime_error("Include Error: Failed to find file " + std::string(requesting_source));
-        }
-      }
-        break;
-      default:
-        break;
-    };
-    result->source_name = (*data_container)[0].data();
-    result->source_name_length = (*data_container)[0].size();
-    result->content = (*data_container)[1].data();
-    result->content_length = (*data_container)[1].size();
-    result->user_data = reinterpret_cast<void*>(data_container);
-    std::cout << "result source: " << result->source_name << std::endl;
-    std::cout << "result content: " << result->content << std::endl;
-    return result;
+    static auto result = shaderc_include_result();
+    return &result;
   }
 
     // Handles shaderc_include_result_release_fn callbacks.
@@ -249,6 +196,7 @@ class Includer : public shaderc::CompileOptions::IncluderInterface {
   private:
   std::vector<std::string> m_includes;
 };
+
 struct Shader::ShaderData {
   std::vector<std::vector<uint32_t>> spirv;
   std::vector<Shader::Stage> stages;
@@ -371,11 +319,11 @@ auto Shader::ShaderData::preprocess(std::string_view name,
 
   for (auto& macro : this->macros) options.AddMacroDefinition(macro);
 
-  options.SetIncluder(std::make_unique<Includer>(std::move(this->includes)));
+  //options.SetIncluder(std::make_unique<Includer>(std::move(this->includes)));
   options.SetTargetEnvironment(target_environment, target_env_version);
   options.SetTargetSpirv(target_spirv_version);
   auto result =
-      compiler.PreprocessGlsl(src.begin(), kind, name.begin(), options);
+      compiler.PreprocessGlsl(src.data(), kind, name.data(), options);
 
   if(result.GetCompilationStatus() != shaderc_compilation_status_success) {
     throw std::runtime_error("Failed to preprocess shader. " + std::string(result.GetErrorMessage()));
@@ -396,8 +344,8 @@ auto Shader::ShaderData::glsl_to_spv(std::string_view name, shaderc_shader_kind 
   if (optimize)
     options.SetOptimizationLevel(shaderc_optimization_level_performance);
 
-  auto result = compiler.CompileGlslToSpv(src.begin(), kind,
-                                          name.begin(), options);
+  auto result = compiler.CompileGlslToSpv(src.data(), kind,
+                                          name.data(), options);
 
   if(result.GetCompilationStatus() != shaderc_compilation_status_success) {
     throw std::runtime_error("Failed to assemblize shader. " + std::string(result.GetErrorMessage()));
@@ -419,8 +367,8 @@ auto Shader::ShaderData::assemblize(std::string_view name,
   if (optimize)
     options.SetOptimizationLevel(shaderc_optimization_level_performance);
 
-  auto result = compiler.CompileGlslToSpvAssembly(src.begin(), kind,
-                                                  name.begin(), options);
+  auto result = compiler.CompileGlslToSpvAssembly(src.data(), kind,
+                                                  name.data(), options);
 
   if(result.GetCompilationStatus() != shaderc_compilation_status_success) {
     throw std::runtime_error("Failed to assemblize shader. " + std::string(result.GetErrorMessage()));
@@ -442,10 +390,10 @@ auto Shader::ShaderData::assemble(shaderc_shader_kind kind,
   if (optimize)
     options.SetOptimizationLevel(shaderc_optimization_level_performance);
 
-  auto result = compiler.AssembleToSpv(src.begin(), src.size(), options);
+  auto result = compiler.AssembleToSpv(src.data(), src.size(), options);
 
   if(result.GetCompilationStatus() != shaderc_compilation_status_success) {
-    throw std::runtime_error("Failed to assemble shader. " + std::string(result.GetErrorMessage()) + std::string(src.begin()));
+    throw std::runtime_error("Failed to assemble shader. " + std::string(result.GetErrorMessage()) + std::string(src.data()));
   }
 
   return {result.cbegin(), result.cend()};

@@ -13,13 +13,13 @@ namespace luna {
 namespace vulkan {
 class Descriptor;
 class Pipeline;
-class Instance;
-class Device;
-class CommandBuffer;
+struct Instance;
 class Descriptor;
 class RenderPass;
 class Swapchain;
 class Window;
+struct Device;
+struct CommandBuffer;
 struct Image;
 struct Buffer;
 struct Semaphore;

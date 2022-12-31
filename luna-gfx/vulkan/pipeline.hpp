@@ -6,9 +6,8 @@
 #include "luna-gfx/vulkan/shader.hpp"
 namespace luna {
 namespace vulkan {
-class Buffer;
-class Device;
-class Texture;
+struct Buffer;
+struct Device;
 class RenderPass;
 class Descriptor;
 class Pipeline {

@@ -30,12 +30,10 @@ class MemoryBuffer {
     MemoryBuffer(MemoryBuffer&& mv) {*this = std::move(mv);};
     MemoryBuffer(const MemoryBuffer& cpy) = delete;
     auto unmap() -> void;
-
+    auto flush() -> void;
     template<typename T>
     auto map(T** ptr) -> void {
-      if(this->type() == MemoryType::General || this->type() == MemoryType::CPUVisible) {
-        this->map_impl(reinterpret_cast<void**>(ptr)); // reinterpret_cast so we can get an opaque ptr to map to.
-      }
+      this->map_impl(reinterpret_cast<void**>(ptr)); // reinterpret_cast so we can get an opaque ptr to map to.
     }
 
     template<typename T>
@@ -50,7 +48,7 @@ class MemoryBuffer {
       auto m = MappedBuffer<T>();
       this->map(&m.begin_);
       m.end_ = m.begin_ + (this->size() / sizeof(T));
-      m.unmap_func_ = std::function<void()>(std::bind(&MemoryBuffer::unmap, this));
+      m.m_handle = this->m_handle;
       return m;
     }
 
@@ -94,6 +92,7 @@ public:
   auto operator=(Vector&& mv) -> Vector& = default  ;
   [[nodiscard]] inline auto size() const -> std::size_t {return this->m_data.size() / sizeof(T);}
   [[nodiscard]] inline auto get_mapped_container() -> MappedBuffer<T> {return this->m_data.get_mapped_container<T>();}
+  inline auto flush() -> void {this->m_data.flush();}
   inline auto upload(const T* ptr, std::size_t amt) -> void {this->m_data.upload(ptr, amt);}
   inline auto upload(const T* ptr) -> void {this->m_data.upload(ptr, this->size());}
   inline auto upload(T data) -> void {this->m_data.upload(&data, &data);}
@@ -113,10 +112,10 @@ private:
 };
 
 template<typename T>
-struct MappedBuffer {
+class MappedBuffer {
 public:
   MappedBuffer() {begin_ = nullptr; end_ = nullptr;}
-  ~MappedBuffer() {this->unmap_func_();}
+  ~MappedBuffer() {unmap_mapped_buffer(this->m_handle);}
   auto size() const -> std::size_t {return end_ - begin_;}
   auto begin() -> T* {return begin_;}
   auto end() -> T* {return end_;}
@@ -128,7 +127,8 @@ public:
   auto data() -> T* {return this->begin_;}
 private:
   friend class MemoryBuffer;
-  std::function<void()> unmap_func_;
+  friend void unmap_mapped_buffer(std::int32_t handle);
+  std::int32_t m_handle;
   T* begin_;
   T* end_;
 };

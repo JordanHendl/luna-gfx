@@ -67,6 +67,27 @@
     "typeinfo": "cpp",
     "any": "cpp",
     "future": "cpp",
-    "variant": "cpp"
+    "variant": "cpp",
+    "filesystem": "cpp",
+    "xstring": "cpp",
+    "xlocale": "cpp",
+    "ios": "cpp",
+    "list": "cpp",
+    "locale": "cpp",
+    "queue": "cpp",
+    "xfacet": "cpp",
+    "xhash": "cpp",
+    "xiosbase": "cpp",
+    "xlocbuf": "cpp",
+    "xlocinfo": "cpp",
+    "xlocmes": "cpp",
+    "xlocmon": "cpp",
+    "xlocnum": "cpp",
+    "xloctime": "cpp",
+    "xmemory": "cpp",
+    "xstddef": "cpp",
+    "xtr1common": "cpp",
+    "xtree": "cpp",
+    "xutility": "cpp"
   }
 }

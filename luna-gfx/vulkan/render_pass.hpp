@@ -11,10 +11,10 @@
 #pragma once
 namespace luna {
 namespace vulkan {
-class Device;
-class CommandBuffer;
-class Image;
 class Swapchain;
+struct Device;
+struct CommandBuffer;
+struct Image;
 
 class RenderPass {
   public:

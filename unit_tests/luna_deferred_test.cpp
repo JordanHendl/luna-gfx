@@ -156,7 +156,7 @@ auto create_gbuffer_pipeline() -> void {
   // Create Graphics pipeline, attaching it to the render pass we created (pipeline outputs to the render pass)
   auto pipe_info = gfx::GraphicsPipelineInfo();
   pipe_info.gpu = cGPU;
-  pipe_info.initial_viewport = {};
+  pipe_info.initial_viewport = {static_cast<float>(data->window.info().width), static_cast<float>(data->window.info().height)};
   pipe_info.subpass = "GBufferPass";
   auto vert_shader = std::vector<uint32_t>(g_buffer_vert, std::end(g_buffer_vert));
   auto frag_shader = std::vector<uint32_t>(g_buffer_frag, std::end(g_buffer_frag));
@@ -168,7 +168,7 @@ auto create_gbuffer_pipeline() -> void {
 auto create_final_pipeline() -> void {
   auto pipe_info = gfx::GraphicsPipelineInfo();
   pipe_info.gpu = cGPU;
-  pipe_info.initial_viewport = {};
+  pipe_info.initial_viewport = {static_cast<float>(data->window.info().width), static_cast<float>(data->window.info().height)};
   auto vert_shader = std::vector<uint32_t>(deferred_vert, std::end(deferred_vert));
   auto frag_shader = std::vector<uint32_t>(deferred_frag, std::end(deferred_frag));
   pipe_info.shaders = {{"vertex", luna::gfx::ShaderType::Vertex, vert_shader}, {"fragment", luna::gfx::ShaderType::Fragment, frag_shader}};
@@ -214,11 +214,11 @@ auto create_vertex_buffers() -> void {
 }
 
 auto init_event_handlers() -> void {
+    static auto camera_angles = vec3{0.0f, 90.0f, 0.0f};
     auto event_cb = [](const gfx::Event& event) {
     constexpr auto camera_speed = 0.1f;
     constexpr auto rotate_speed = 1.0f;
     if(event.type() == gfx::Event::Type::WindowExit) running = false;
-    static auto camera_angles = vec3{0.0f, 0.0f, 0.0f};
     switch(event.key()) {
       case gfx::Key::One : *data->layer = 0; break;
       case gfx::Key::Two : *data->layer = 1; break;
@@ -229,21 +229,26 @@ auto init_event_handlers() -> void {
       case gfx::Key::S : data->camera.translate(-(data->camera.front() * camera_speed)); break;
       case gfx::Key::D : data->camera.translate(data->camera.right() * camera_speed); break;
       case gfx::Key::A : data->camera.translate(-(data->camera.right() * camera_speed)); break;
-      case gfx::Key::Space : data->camera.translate((data->camera.up() * camera_speed)); break;
-      case gfx::Key::LShift : data->camera.translate(-(data->camera.up() * camera_speed)); break;
+      case gfx::Key::Space : data->camera.translate(-(data->camera.up() * camera_speed)); break;
+      case gfx::Key::LShift : data->camera.translate((data->camera.up() * camera_speed)); break;
 
       case gfx::Key::Left : camera_angles.y += rotate_speed; data->camera.rotate_euler(camera_angles); break;
       case gfx::Key::Right : camera_angles.y -= rotate_speed; data->camera.rotate_euler(camera_angles); break;
-      case gfx::Key::Up : camera_angles.x += rotate_speed; data->camera.rotate_euler(camera_angles); break;
-      case gfx::Key::Down : camera_angles.x -= rotate_speed; data->camera.rotate_euler(camera_angles); break;
+      case gfx::Key::Up : camera_angles.x -= rotate_speed; data->camera.rotate_euler(camera_angles); break;
+      case gfx::Key::Down : camera_angles.x += rotate_speed; data->camera.rotate_euler(camera_angles); break;
       default: break;
     };
   };
   data->event_handler.add(event_cb);
+  data->camera.rotate_euler(camera_angles);
 }
 
 auto initialize() -> void {
-  data->window = gfx::Window(gfx::WindowInfo());
+  auto window_info = gfx::WindowInfo();
+  window_info.width = cWidth;
+  window_info.height = cHeight;
+
+  data->window = gfx::Window(window_info);
   auto info = gfx::RenderPassInfo();
   auto subpass = gfx::Subpass();
   auto attachment = gfx::Attachment();
@@ -253,8 +258,8 @@ auto initialize() -> void {
 
   // Set the render area & GPU to make this render pass on.
   info.gpu = cGPU;
-  info.width = cWidth;
-  info.height = cHeight;
+  info.width = data->window.info().width;
+  info.height = data->window.info().height;
   data->rp = gfx::RenderPass(info);
 
   create_gbuffer_pipeline();
@@ -262,7 +267,7 @@ auto initialize() -> void {
   create_uniforms();
   create_vertex_buffers();
   init_event_handlers();
-  data->projection = luna::perspective(luna::to_radians(90.f), 1280.f / 1024.f, 0.1f, 1000.f);
+  
 }
 
 auto draw_loop() -> void {
@@ -272,6 +277,7 @@ auto draw_loop() -> void {
   auto transform = data->transforms.get_mapped_container();
 
   transform[0].model = mat4(1.0f);
+  data->projection = luna::perspective(luna::to_radians(90.f), static_cast<float>(data->window.info().width) / static_cast<float>(data->window.info().height), 0.1f, 1000.f);
   while(running) {
     auto info = data->camera.info();
     camera[0].view_matrix = data->projection * info.view_matrix;

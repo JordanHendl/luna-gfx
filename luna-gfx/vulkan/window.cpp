@@ -21,7 +21,7 @@ Window::Window() {
 Window::Window(gfx::WindowInfo info) {
   this->m_data = std::make_unique<Window::WindowData>();
   this->m_data->m_window =
-      (SDL_CreateWindow(info.title.c_str(), 0, 0, info.width, info.height,
+      (SDL_CreateWindow(info.title.c_str(), 0, 256, static_cast<int>(info.width), static_cast<int>(info.height),
                         SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN));
 
   auto raw_surface = VkSurfaceKHR{};
@@ -30,7 +30,7 @@ Window::Window(gfx::WindowInfo info) {
   (void)error;
   this->m_data->m_surface = raw_surface;
 
-  this->update(info);
+  //this->update(info);
 }
 
 Window::Window(Window&& mv) { 
@@ -54,9 +54,7 @@ auto Window::operator=(Window&& mv) -> Window& {
 
 auto Window::update(gfx::WindowInfo info) -> void {
   this->set_mouse_capture(info.capture_mouse);
-
-  if (info.borderless != this->borderless())
-    this->set_borderless(info.borderless);
+  this->set_borderless(info.borderless);
   if (info.width != this->width()) this->set_width(info.width);
   if (info.height != this->height()) this->set_height(info.height);
   if (info.fullscreen != this->fullscreen())
@@ -70,7 +68,7 @@ auto Window::set_title(std::string_view title) -> void {
       this->m_data->m_window,
       "Attempting to access athis->m_data->m_window that has not been initialized.");
 
-  SDL_SetWindowTitle(this->m_data->m_window, title.begin());
+  SDL_SetWindowTitle(this->m_data->m_window, title.data());
 }
 
 auto Window::set_borderless(bool value) -> void {

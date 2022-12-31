@@ -242,19 +242,19 @@ TEST(Interface, MapBuffer)  {
 
   {
     auto container = buffer.get_mapped_container<char>();
+    container[0] = 0;
     EXPECT_TRUE(container.begin() != nullptr);
     EXPECT_TRUE(container.data() != nullptr);
     EXPECT_EQ(container.size(), buffer.size());
   }
-
   {
     auto container = buffer.get_mapped_container<float>();
+    container[0] = 0.f;
     EXPECT_TRUE(container.begin() != nullptr);
     EXPECT_TRUE(container.data() != nullptr);
     EXPECT_EQ(container.size(), buffer.size() / sizeof(float));
   }
 }
-
 TEST(Interface, InitializeBufferWithData) {
   float* tmp = nullptr;
   constexpr auto cGPU = 0;
