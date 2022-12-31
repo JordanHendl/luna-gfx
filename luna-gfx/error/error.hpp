@@ -16,7 +16,7 @@ inline auto _luna_assert_impl_variadic(const T& t) -> void {
 template <typename First, typename... Rest> 
 inline auto _luna_assert_impl_variadic(const First& first, const Rest&... rest) -> void {
      std::cout << first;
-    _luna_assert_impl(rest...); // recursive call using pack expansion syntax
+    _luna_assert_impl_variadic(rest...); // recursive call using pack expansion syntax
 }
 template<typename ...Args>
 inline auto _luna_assert_impl(Args ... args) {

@@ -20,7 +20,6 @@ Window::Window() {
 
 Window::Window(gfx::WindowInfo info) {
   this->m_data = std::make_unique<Window::WindowData>();
-  const auto flags = SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN;
   this->m_data->m_window =
       (SDL_CreateWindow(info.title.c_str(), 0, 256, static_cast<int>(info.width), static_cast<int>(info.height),
                         SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN));

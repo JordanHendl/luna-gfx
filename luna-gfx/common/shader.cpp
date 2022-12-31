@@ -184,7 +184,8 @@ class Includer : public shaderc::CompileOptions::IncluderInterface {
                                                shaderc_include_type type,
                                                const char* requesting_source,
                                                size_t include_depth)  -> shaderc_include_result* {
-
+    static auto result = shaderc_include_result();
+    return &result;
   }
 
     // Handles shaderc_include_result_release_fn callbacks.
