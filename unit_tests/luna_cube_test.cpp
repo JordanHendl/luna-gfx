@@ -152,7 +152,6 @@ auto draw_loop() -> void {
     rot = ((static_cast<double>(time_in_seconds.count()) / 1000.0f));
     transforms->model = static_cast<float>(rot);
     gpu_transforms.flush(); 
-    std::cout << rot << std::endl;
     gfx::synchronize_gpu(cGPU);
 
     // Combo next gpu action to the cmd list.
