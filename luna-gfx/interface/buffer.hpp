@@ -2,7 +2,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
-#include <functional>
+
 namespace luna {
 namespace gfx {
 template<typename T>
@@ -24,13 +24,29 @@ enum class MemoryType {
 // Raw untyped GPU memory. 
 class MemoryBuffer {
   public:
+    MemoryBuffer(const MemoryBuffer& cpy) = delete;
+    auto operator=(const MemoryBuffer& cpy) -> MemoryBuffer& = delete;  
+
     MemoryBuffer() {this->m_handle = -1; this->m_size = 0; this->m_type = MemoryType::Unknown;}
     MemoryBuffer(int gpu, std::size_t size, MemoryType type = MemoryType::General);
     ~MemoryBuffer();
     MemoryBuffer(MemoryBuffer&& mv) {*this = std::move(mv);};
-    MemoryBuffer(const MemoryBuffer& cpy) = delete;
     auto unmap() -> void;
     auto flush() -> void;
+    auto gpu() const -> int;
+
+    [[nodiscard]] inline auto type() const {return this->m_type;}
+    [[nodiscard]] inline auto size() const {return this->m_size;}
+    [[nodiscard]] inline auto handle() const -> std::int32_t {return this->m_handle;}
+    
+    auto operator=(MemoryBuffer&& mv) -> MemoryBuffer& {
+      this->m_handle = mv.m_handle;
+      this->m_type = mv.m_type;
+      this->m_size = mv.m_size;
+      mv.m_handle = -1;
+      return *this;
+    }
+
     template<typename T>
     auto map(T** ptr) -> void {
       this->map_impl(reinterpret_cast<void**>(ptr)); // reinterpret_cast so we can get an opaque ptr to map to.
@@ -52,23 +68,10 @@ class MemoryBuffer {
       return m;
     }
 
-    auto gpu() const -> int;
 
     template<typename T>
     auto upload(const T* ptr) -> void { upload_data_impl(reinterpret_cast<const unsigned char*>(ptr), this->size());}
-    [[nodiscard]] inline auto type() const {return this->m_type;}
-    [[nodiscard]] inline auto size() const {return this->m_size;}
-    [[nodiscard]] inline auto handle() const -> std::int32_t {return this->m_handle;}
-    
-    auto operator=(MemoryBuffer&& mv) -> MemoryBuffer& {
-      this->m_handle = mv.m_handle;
-      this->m_type = mv.m_type;
-      this->m_size = mv.m_size;
-      mv.m_handle = -1;
-      return *this;
-    }
 
-    auto operator=(const MemoryBuffer& cpy) -> MemoryBuffer& = delete;  
   private:
     auto map_impl(void** ptr) -> void;
     auto upload_data_impl(const unsigned char* in_data, std::size_t num_bytes) -> void;

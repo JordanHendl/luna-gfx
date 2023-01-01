@@ -1,5 +1,5 @@
 execute_process( 
-  COMMAND tar -xf ${CMAKE_CURRENT_SOURCE_DIR}/stb_tools.tgz
+  COMMAND tar -xf ${CMAKE_CURRENT_SOURCE_DIR}/stb_tools.tar.gz
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 

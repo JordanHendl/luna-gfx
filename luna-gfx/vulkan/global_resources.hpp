@@ -1,6 +1,7 @@
 #pragma once
 #include "luna-gfx/common/dlloader.hpp"
 #include "luna-gfx/interface/image.hpp"
+#include "luna-gfx/error/error.hpp"
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 #include <vector>

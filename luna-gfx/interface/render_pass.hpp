@@ -41,7 +41,7 @@ public:
   FramebufferCreator() = default;
   FramebufferCreator(int gpu, std::size_t width, std::size_t height, std::unordered_map<std::string, gfx::ImageFormat> requested_framebuffers);
   FramebufferCreator(FramebufferCreator&& mv) = default;
-  ~FramebufferCreator() = default;
+  inline ~FramebufferCreator() = default;
   auto operator[](std::string name) -> std::vector<gfx::ImageView> {return this->views()[name];}
   auto views() -> std::unordered_map<std::string, std::vector<gfx::ImageView>>;
   auto operator=(FramebufferCreator&& mv) -> FramebufferCreator& = default;
@@ -51,15 +51,16 @@ private:
 
 class RenderPass {
   public:
+    RenderPass(const RenderPass& cpy) = delete;
+    auto operator=(const RenderPass& cpy) -> RenderPass& = delete;
+
     RenderPass() {this->m_handle = -1;}
     RenderPass(RenderPassInfo info);
     RenderPass(RenderPass&& mv) {*this = std::move(mv);}
-    RenderPass(const RenderPass& cpy) = delete;
     ~RenderPass();
     [[nodiscard]] inline auto info() const {return this->m_info;}
     [[nodiscard]] inline auto handle() const {return this->m_handle;}
     auto operator=(RenderPass&& mv) -> RenderPass& {this->m_handle = mv.m_handle; mv.m_handle = -1; this->m_info = mv.m_info; return *this;};
-    auto operator=(const RenderPass& cpy) -> RenderPass& = delete;
 private:
   std::int32_t m_handle;
   RenderPassInfo m_info;

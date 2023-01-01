@@ -147,8 +147,8 @@ class Event {
  */
 class EventRegister {
  public:
-   EventRegister();
-   EventRegister(EventRegister&& mv);
+  EventRegister();
+  EventRegister(EventRegister&& mv);
   ~EventRegister();
   auto operator=(EventRegister&& mv) -> EventRegister&;
   auto add(std::function<void(const Event&)> callback) -> void;
