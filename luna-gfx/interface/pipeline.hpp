@@ -9,6 +9,13 @@
 namespace luna {
 namespace gfx {
 
+/** Enumeration to describe an attachment is color blended.
+*/
+enum class ColorBlendStyle {
+  None,
+  Alpha,
+};
+
 /** Enum class describing the way this pipeline interprets the incoming vertices on any sort of Graphicsing operation.
  */
 enum class Topology : int {
@@ -40,6 +47,12 @@ struct GraphicsPipelineDetails {
 
   // The way this pipeline interprets incoming vertices for Graphicsing. Defaults to triangles.
   Topology topology = Topology::Triangle;
+
+  /** The style of color blending an attachment gets. 
+   * <attachment name, blend style>
+   * If none are selected, then None is the default.
+  */
+  std::unordered_map<std::string, ColorBlendStyle> blend_funcs;
 };
 
 struct GraphicsPipelineInfo {
