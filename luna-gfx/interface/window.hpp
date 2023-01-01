@@ -24,10 +24,13 @@ struct WindowInfo {
 
 class Window {
   public:
+    Window(const Window& cpy) = delete;
+
     Window() {this->m_handle = -1;}
+    auto operator=(const Window& cpy) -> Window& = delete;
+
     Window(WindowInfo info);
     Window(Window&& mv) {*this = std::move(mv);};
-    Window(const Window& cpy) = delete;
     ~Window();
     auto acquire() -> std::size_t;
     auto combo_into(CommandList& cmd) -> void;
@@ -37,7 +40,6 @@ class Window {
     [[nodiscard]] inline auto handle() const -> std::int32_t {return this->m_handle;}
     [[nodiscard]] inline auto info() const -> const WindowInfo& {return this->m_info;}
     auto operator=(Window&& mv) -> Window& {this->m_handle = mv.m_handle; mv.m_handle = -1; this->m_info = mv.m_info; return *this;};
-    auto operator=(const Window& cpy) -> Window& = delete;
   private:
     std::vector<Image> m_images;
     std::int32_t m_handle;

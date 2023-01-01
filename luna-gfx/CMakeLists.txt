@@ -3,5 +3,14 @@ add_subdirectory(vma_lib)
 add_subdirectory(vulkan)
 add_subdirectory(interface)
 add_subdirectory(ext)
-add_library(luna_gfx SHARED gfx.cpp)
-target_link_libraries(luna_gfx PUBLIC luna_vulkan_impl luna_gfx_common luna_gfx_interface)
+add_library(gfx STATIC gfx.cpp)
+target_link_libraries(gfx PRIVATE gfx_extended
+                                  vulkan_impl
+                                  gfx_common
+                                  gfx_interface
+                                  vma_lib
+                                  spirv_reflect
+                                  stb_tools
+                                  )
+
+install(FILES gfx.hpp DESTINATION ${header_install_dir} COMPONENT devel)

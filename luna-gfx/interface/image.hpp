@@ -32,10 +32,12 @@ struct ImageInfo {
 
 class Image {
   public:
+    Image(const Image& cpy) = delete;
+    auto operator=(const Image& cpy) -> Image& = delete;
+
     Image() {this->m_handle = -1;}
     Image(ImageInfo info, const unsigned char* initial_data = nullptr);
     Image(Image&& mv) {*this = std::move(mv);};
-    Image(const Image& cpy) = delete;
     ~Image();
 
     auto operator=(Image&& mv) -> Image& {
@@ -50,7 +52,6 @@ class Image {
       this->upload_raw(reinterpret_cast<const unsigned char*>(ptr));
     }
 
-    auto operator=(const Image& cpy) -> Image& = delete;
     [[nodiscard]] inline auto handle() const -> std::int32_t {return this->m_handle;}
     [[nodiscard]] inline auto info() const {return this->m_info;}
   private:

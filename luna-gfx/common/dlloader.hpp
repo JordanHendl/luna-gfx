@@ -1,5 +1,4 @@
 #pragma once
-#include "luna-gfx/error/error.hpp"
 #include <utility>
 #include <memory>
 
@@ -110,14 +109,8 @@ Symbol<RETURN, ARGS...>::operator bool() const {
 
 template <class RETURN, class... ARGS>
 RETURN Symbol<RETURN, ARGS...>::operator()(ARGS... args) {
-  LunaAssert(this->func, "Attempting to use a symbol that is invalid/not been loaded.");
   return ((this->func)(args...));
 }
-
-//template <class... ARGS>
-//void Symbol<void, ARGS...>::operator()(ARGS... args) {
-//  (this->func)(args...);
-//}
 
 template <class RETURN, class... ARGS>
 Symbol<RETURN, ARGS...>& Symbol<RETURN, ARGS...>::operator=(void (*func)()) {
