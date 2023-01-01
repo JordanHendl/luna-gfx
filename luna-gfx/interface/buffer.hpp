@@ -120,7 +120,18 @@ template<typename T>
 class MappedBuffer {
 public:
   MappedBuffer() {begin_ = nullptr; end_ = nullptr;}
-  ~MappedBuffer() {unmap_mapped_buffer(this->m_handle);}
+  MappedBuffer(MappedBuffer&& mv) {*this = std::move(mv);}
+  MappedBuffer(const MappedBuffer& cpy) = delete;
+  ~MappedBuffer() {if(this->m_handle >= 0) unmap_mapped_buffer(this->m_handle);}
+  auto operator=(const MappedBuffer& cpy) -> MappedBuffer& = delete;
+  auto operator=(MappedBuffer&& mv)->MappedBuffer & {
+    this->m_handle = mv.m_handle;
+    this->begin_ = mv.begin_;
+    this->end_ = mv.end_;
+    mv.m_handle = -1;
+    return *this;
+  };
+
   auto size() const -> std::size_t {return end_ - begin_;}
   auto begin() -> T* {return begin_;}
   auto end() -> T* {return end_;}
