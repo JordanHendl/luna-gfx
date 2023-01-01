@@ -21,7 +21,6 @@ macro(AddTest test_file)
 endmacro()
 
 if(BuildTests)
-find_package(GTest REQUIRED)
 if(GTest_FOUND)
   set(luna_gfx_libs gfx)
   AddTest(test_interface.cpp)

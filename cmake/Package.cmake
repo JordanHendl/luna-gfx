@@ -15,9 +15,8 @@ macro(ConfigurePackaging)
       OUTPUT_VARIABLE LSB_RELEASE_ID_SHORT
       OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-  
     # For Ubuntu/Debian, package a .deb
-    if(LSB_RELEASE_ID_SHORT EQUAL "Ubuntu" OR LSB_RELEASE_ID_SHORT EQUAL "Debian")
+    if(LSB_RELEASE_ID_SHORT STREQUAL "Ubuntu" OR LSB_RELEASE_ID_SHORT STREQUAL "Debian")
       include(PackageDeb)
     endif()
   

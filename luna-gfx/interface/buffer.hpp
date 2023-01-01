@@ -114,6 +114,8 @@ private:
   MemoryBuffer m_data;
 };
 
+auto unmap_mapped_buffer(std::int32_t handle) -> void;
+
 template<typename T>
 class MappedBuffer {
 public:
@@ -129,8 +131,8 @@ public:
   auto data() const -> const T* {return this->begin_;}
   auto data() -> T* {return this->begin_;}
 private:
-  friend class MemoryBuffer;
   friend void unmap_mapped_buffer(std::int32_t handle);
+  friend class MemoryBuffer;
   std::int32_t m_handle;
   T* begin_;
   T* end_;
