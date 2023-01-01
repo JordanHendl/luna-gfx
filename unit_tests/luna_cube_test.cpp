@@ -187,6 +187,7 @@ auto draw_loop() -> void {
   
   // Before we deconstruct everything, make sure we're done working on the GPU.
   gfx::synchronize_gpu(cGPU);
+  gpu_transforms.unmap();
 }
 }
 
