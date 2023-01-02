@@ -30,7 +30,7 @@ Window::Window(gfx::WindowInfo info) {
   (void)error;
   this->m_data->m_surface = raw_surface;
 
-  //this->update(info);
+  this->update(info);
 }
 
 Window::Window(Window&& mv) { 
@@ -75,7 +75,7 @@ auto Window::set_borderless(bool value) -> void {
   LunaAssert(
       this->m_data->m_window,
       "Attempting to access athis->m_data->m_window that has not been initialized.");
-  SDL_SetWindowBordered(this->m_data->m_window, static_cast<SDL_bool>(value));
+  SDL_SetWindowBordered(this->m_data->m_window, static_cast<SDL_bool>(!value));
 }
 
 auto Window::set_fullscreen(bool value) -> void {
@@ -239,7 +239,7 @@ auto Window::width() -> size_t {
       "Attempting to access athis->m_data->m_window that has not been initialized.");
   SDL_GetWindowSize(this->m_data->m_window, &w, &h);
 
-  return w;
+  return static_cast<std::size_t>(w);
 }
 
 auto Window::height() -> size_t {
@@ -251,7 +251,7 @@ auto Window::height() -> size_t {
       "Attempting to access athis->m_data->m_window that has not been initialized.");
   SDL_GetWindowSize(this->m_data->m_window, &w, &h);
 
-  return h;
+  return static_cast<std::size_t>(h);
 }
 
 auto Window::xpos() -> size_t {

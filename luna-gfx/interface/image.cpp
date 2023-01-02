@@ -28,6 +28,10 @@ Image::~Image() {
   return vulkan::global_resources().images[this->m_handle].info;
 }
 
+auto Image::view(std::size_t mip_level) -> ImageView {
+  return {this->m_handle, mip_level};
+}
+
 auto Image::upload_raw(const unsigned char* ptr) -> void {
     auto amt = this->info().width * this->info().height * luna::vulkan::size_from_format(this->info().format);
     auto tmp_buffer = MemoryBuffer(this->info().gpu, amt, MemoryType::CPUVisible);

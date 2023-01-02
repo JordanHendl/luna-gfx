@@ -4,16 +4,20 @@
 #include "luna-gfx/vulkan/global_resources.hpp"
 #include "luna-gfx/vulkan/data_types.hpp"
 #include "luna-gfx/vulkan/utils/helper_functions.hpp"
+#include "luna-gfx/interface/event.hpp"
 #include <utility>
 #include <algorithm>
+#include <thread>
+#include <chrono>
 namespace luna {
 namespace vulkan {
-Swapchain::Swapchain(int32_t device, std::string name, vk::SurfaceKHR surface, bool vsync) {
-  this->m_gpu = device;
-  this->m_surface = surface;
-  this->m_vsync = vsync;
+Swapchain::Swapchain(SwapchainCreateInfo info) {
+  this->m_gpu = info.device;
+  this->m_surface = info.surface;
+  this->m_vsync = info.vsync;
   this->m_current_frame = 0;
-  this->m_name = name;
+  this->m_name = info.name;
+  this->m_info = info;
   this->check_support();
   this->recreate();
   this->m_was_recreated = false; // Reset the flag set by ::recreate() because this is initialization.
@@ -45,7 +49,9 @@ auto Swapchain::operator=(Swapchain&& mv) -> Swapchain& {
   this->m_vsync = mv.m_vsync;
   this->m_format = mv.m_format;
   this->m_name = std::move(mv.m_name);
-  
+  this->m_info = mv.m_info;
+
+  mv.m_info = {};
   mv.m_fences.clear();
   mv.m_fences_in_flight.clear();
   mv.m_formats.clear();
@@ -207,6 +213,12 @@ auto Swapchain::acquire() -> std::tuple<vk::Result, size_t> {
 
   this->m_sems_to_signal.clear();
   this->m_current_frame = img;
+  if(result != vk::Result::eSuccess) {
+    std::cout << "SWAPCHAIN CHANGED" << std::endl;
+    gpu.wait_idle();
+    this->recreate();
+    if(this->m_info.callback_func) this->m_info.callback_func();
+  }
   return {result, img};
 }
 
@@ -223,6 +235,14 @@ auto Swapchain::recreate() -> void {
   this->m_fences.clear();
   this->find_properties();
   this->choose_extent();
+  while(this->m_extent.width == 0 && this->m_extent.height == 0) {
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(100ms);
+    this->find_properties();
+    this->choose_extent();
+    luna::gfx::poll_events(); // If this is happening, we are probably minimized, and should still read events.
+  }
+
   this->make_swapchain();
   this->gen_images();
 
@@ -253,8 +273,10 @@ auto Swapchain::present() -> void {
   info.setWaitSemaphores(wait_sems);
   auto result = queue.presentKHR(&info, gpu.m_dispatch);
   if(result != vk::Result::eSuccess) {
+    std::cout << "SWAPCHAIN CHANGED" << std::endl;
     gpu.wait_idle();
     this->recreate();
+    if(this->m_info.callback_func) this->m_info.callback_func();
   }
 
   // Release ownership of the sems we just consumed.
