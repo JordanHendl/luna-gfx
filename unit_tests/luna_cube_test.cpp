@@ -32,8 +32,6 @@ luna::gfx::Vector<Transformations> gpu_transforms;
 luna::gfx::BindGroup bind_group;
 luna::gfx::Image img;
 
-constexpr auto cWidth = 1280u;
-constexpr auto cHeight = 1024u;
 constexpr auto cGPU = 0;
 constexpr auto cClearColors = std::array<float, 4>{0.0f, 0.2f, 0.2f, 1.0f};
 constexpr auto cBMPImageHeaderOffset = 54;
@@ -131,7 +129,7 @@ auto draw_loop() -> void {
 
   auto event_handler = gfx::EventRegister();
   auto event_cb = [&transforms](const gfx::Event& event) {
-    constexpr auto cOffsetAmt = 0.01;
+    constexpr auto cOffsetAmt = 0.01f;
     if(event.type() == gfx::Event::Type::WindowExit) running = false;
     switch(event.key()) {
       case gfx::Key::Up : transforms->offset += cOffsetAmt; break;
@@ -165,7 +163,7 @@ auto draw_loop() -> void {
     cmd->begin();
     cmd->start_draw(rp, window.current_frame());
     cmd->bind(bind_group);
-    cmd->viewport({});
+    cmd->viewport({static_cast<float>(window.width()), static_cast<float>(window.height())});
     cmd->draw(vertices);
     cmd->end_draw();
     cmd->end();
