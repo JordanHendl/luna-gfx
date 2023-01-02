@@ -1,6 +1,7 @@
 #include "luna-gfx/vulkan/vulkan_defines.hpp"
 #include "luna-gfx/vulkan/device.hpp"
 #include <vulkan/vulkan.hpp>
+#include <functional>
 #include <limits.h>
 #include <iostream>
 #include <queue>
@@ -10,12 +11,20 @@
 namespace luna {
 namespace vulkan {
 struct CommandBuffer;
+struct SwapchainCreateInfo {
+  int32_t device;
+  std::string name;
+  vk::SurfaceKHR surface;
+  std::function<void()> callback_func;
+  bool vsync;
+};
+
 /** Class for managing a Vulkan Swapchain.
  */
 class Swapchain {
  public:
   Swapchain() = default;
-  Swapchain(int32_t device, std::string name, vk::SurfaceKHR window, bool vsync);
+  Swapchain(SwapchainCreateInfo info);
   Swapchain(Swapchain&& mv);
   ~Swapchain();
   auto operator=(Swapchain&& mv) -> Swapchain&;
@@ -34,7 +43,7 @@ class Swapchain {
   /** Method to acquire the next image from the swapchain.
    */
   auto acquire() -> std::tuple<vk::Result, size_t>;
-
+  std::function<void()> m_update_cb;
   std::vector<int32_t> m_sems_to_signal;
   std::vector<int32_t> m_sems_to_wait_on;
   int32_t m_gpu;
@@ -62,6 +71,7 @@ class Swapchain {
   vk::Extent2D m_extent;
   std::string m_name;
 
+  SwapchainCreateInfo m_info;
   unsigned m_current_frame;
   bool m_skip_frame;
   bool m_vsync;

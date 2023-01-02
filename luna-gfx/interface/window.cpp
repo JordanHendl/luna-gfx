@@ -16,7 +16,7 @@ Window::Window(WindowInfo info) {
   auto& swap = res.swapchains[this->m_handle];
 
   res.windows[this->m_handle] = std::move(vulkan::Window(info));
-  swap = std::move(vulkan::Swapchain(info.gpu, info.title, res.windows[this->m_handle].surface(), false));
+  swap = std::move(vulkan::Swapchain({info.gpu, info.title, res.windows[this->m_handle].surface(), info.resize_callback, false}));
   this->m_info = info;
 }
 
@@ -31,6 +31,18 @@ Window::~Window() {
   {
     auto tmp = std::move(res.windows[this->m_handle]);
   }
+}
+
+auto Window::width() -> std::size_t {
+  auto& res = vulkan::global_resources();
+  auto& window = res.windows[this->m_handle];
+  return window.width();
+}
+
+auto Window::height() -> std::size_t {
+  auto& res = vulkan::global_resources();
+  auto& window = res.windows[this->m_handle];
+  return window.height();
 }
 
 auto Window::acquire() -> std::size_t {

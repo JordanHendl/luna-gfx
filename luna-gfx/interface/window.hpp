@@ -6,6 +6,7 @@
 #include <string>
 #include <string_view>
 #include <future>
+#include <functional>
 namespace luna {
 namespace gfx {
 class CommandList;
@@ -14,6 +15,7 @@ struct WindowInfo {
   size_t width = 1280;
   size_t height = 1024;
   int gpu = 0;
+  std::function<void()> resize_callback;
   bool borderless = false;
   bool fullscreen = false;
   bool resizable = false;
@@ -32,6 +34,8 @@ class Window {
     Window(WindowInfo info);
     Window(Window&& mv) {*this = std::move(mv);};
     ~Window();
+    auto width() -> std::size_t;
+    auto height() -> std::size_t;
     auto acquire() -> std::size_t;
     auto combo_into(CommandList& cmd) -> void;
     auto present() -> void;

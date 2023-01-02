@@ -28,9 +28,10 @@ luna::gfx::Window window;
 luna::gfx::RenderPass rp;
 luna::gfx::GraphicsPipeline pipeline;
 luna::gfx::FramebufferCreator framebuffers;
+luna::gfx::Vector<Transformations> gpu_transforms;
+luna::gfx::BindGroup bind_group;
+luna::gfx::Image img;
 
-constexpr auto cWidth = 1280u;
-constexpr auto cHeight = 1024u;
 constexpr auto cGPU = 0;
 constexpr auto cClearColors = std::array<float, 4>{0.0f, 0.2f, 0.2f, 1.0f};
 constexpr auto cBMPImageHeaderOffset = 54;
@@ -79,7 +80,6 @@ bool running = true;
 
 namespace luna {
 auto init_graphics_pipeline() -> void {
-  window = gfx::Window(gfx::WindowInfo());
   auto info = gfx::RenderPassInfo();
   auto subpass = gfx::Subpass();
   auto attachment = gfx::Attachment();
@@ -91,15 +91,15 @@ auto init_graphics_pipeline() -> void {
 
   // Now, set up the depth attachments.
   attachment.views.clear();
-  framebuffers = std::move(gfx::FramebufferCreator(cGPU, window.info().width, window.info().height, {{"depth", gfx::ImageFormat::Depth}}));
+  framebuffers = std::move(gfx::FramebufferCreator(cGPU, window.width(), window.height(), {{"depth", gfx::ImageFormat::Depth}}));
   subpass.attachments.push_back({"DepthAttachment", framebuffers.views()["depth"], {1.0f, 1.0f, 1.0f, 1.0f}});
 
   info.subpasses.push_back(subpass);
 
   // Set the render area & GPU to make this render pass on.
   info.gpu = cGPU;
-  info.width = cWidth;
-  info.height = cHeight;
+  info.width = window.width();
+  info.height = window.height();
 
   rp = gfx::RenderPass(info);
   
@@ -112,22 +112,24 @@ auto init_graphics_pipeline() -> void {
   pipe_info.shaders = {{"vertex", luna::gfx::ShaderType::Vertex, vert_shader}, {"fragment", luna::gfx::ShaderType::Fragment, frag_shader}};
   pipe_info.details.depth_test = true;
   pipeline = luna::gfx::GraphicsPipeline(rp, pipe_info);
+  img = gfx::Image({"Default_Image", 0, 1024, 1024}); // Name, gpu, width, height
+  gpu_transforms = gfx::Vector<Transformations>(cGPU, 1);
+  bind_group = pipeline.create_bind_group();
+  bind_group.set(gpu_transforms, "transform");
+  bind_group.set(img, "cube_texture");
+  img.upload(DEFAULT_bmp + cBMPImageHeaderOffset);
 }
 
 auto draw_loop() -> void {
   Transformations* transforms = nullptr;
-
   auto cmd = gfx::MultiBuffered<gfx::CommandList>(cGPU);
-  auto bind_group = pipeline.create_bind_group();
-  auto img = gfx::Image({"Default_Image", 0, 1024, 1024}); // Name, gpu, width, height
-  auto gpu_transforms = gfx::Vector<Transformations>(cGPU, 1);
-  auto vertices = gfx::Vector<Vertex>(cGPU, cVertices.size());
-  auto event_handler = gfx::EventRegister();
   
-  img.upload(DEFAULT_bmp + cBMPImageHeaderOffset);
+  auto vertices = gfx::Vector<Vertex>(cGPU, cVertices.size());
+  vertices.upload(cVertices.data());
 
+  auto event_handler = gfx::EventRegister();
   auto event_cb = [&transforms](const gfx::Event& event) {
-    constexpr auto cOffsetAmt = 0.01;
+    constexpr auto cOffsetAmt = 0.01f;
     if(event.type() == gfx::Event::Type::WindowExit) running = false;
     switch(event.key()) {
       case gfx::Key::Up : transforms->offset += cOffsetAmt; break;
@@ -138,21 +140,20 @@ auto draw_loop() -> void {
 
   event_handler.add(event_cb);
   gpu_transforms.map(&transforms);
-  vertices.upload(cVertices.data());
-  bind_group.set(gpu_transforms, "transform");
-  bind_group.set(img, "cube_texture");
   transforms->model = 0;
   transforms->offset = 0.4f;
   auto start_time = std::chrono::system_clock::now();
   auto rot = 0.0;
+  gpu_transforms.unmap();
   while(running) {
     // Update rotation
+    gpu_transforms.map(&transforms);
     auto time_since_start = std::chrono::system_clock::now() - start_time;
     auto time_in_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(time_since_start);
     rot = ((static_cast<double>(time_in_seconds.count()) / 1000.0f));
     transforms->model = static_cast<float>(rot);
     gpu_transforms.flush(); 
-    gfx::synchronize_gpu(cGPU);
+    gpu_transforms.unmap();
 
     // Combo next gpu action to the cmd list.
     window.combo_into(*cmd);
@@ -162,7 +163,7 @@ auto draw_loop() -> void {
     cmd->begin();
     cmd->start_draw(rp, window.current_frame());
     cmd->bind(bind_group);
-    cmd->viewport({});
+    cmd->viewport({static_cast<float>(window.width()), static_cast<float>(window.height())});
     cmd->draw(vertices);
     cmd->end_draw();
     cmd->end();
@@ -192,6 +193,10 @@ auto draw_loop() -> void {
 }
 
 auto main(int argc, const char* argv[]) -> int {
+  auto info = luna::gfx::WindowInfo();
+  info.resizable = true;
+  info.resize_callback = {[](){luna::init_graphics_pipeline();}};
+  window = luna::gfx::Window(info);
   luna::init_graphics_pipeline();
   luna::draw_loop();
   return 0;
