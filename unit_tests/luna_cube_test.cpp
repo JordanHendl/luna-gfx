@@ -82,7 +82,6 @@ bool running = true;
 
 namespace luna {
 auto init_graphics_pipeline() -> void {
-  std::cout << "initializing graphics pipeline" << std::endl;
   auto info = gfx::RenderPassInfo();
   auto subpass = gfx::Subpass();
   auto attachment = gfx::Attachment();

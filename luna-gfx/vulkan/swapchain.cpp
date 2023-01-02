@@ -214,7 +214,6 @@ auto Swapchain::acquire() -> std::tuple<vk::Result, size_t> {
   this->m_sems_to_signal.clear();
   this->m_current_frame = img;
   if(result != vk::Result::eSuccess) {
-    std::cout << "SWAPCHAIN CHANGED" << std::endl;
     gpu.wait_idle();
     this->recreate();
     if(this->m_info.callback_func) this->m_info.callback_func();
@@ -273,7 +272,6 @@ auto Swapchain::present() -> void {
   info.setWaitSemaphores(wait_sems);
   auto result = queue.presentKHR(&info, gpu.m_dispatch);
   if(result != vk::Result::eSuccess) {
-    std::cout << "SWAPCHAIN CHANGED" << std::endl;
     gpu.wait_idle();
     this->recreate();
     if(this->m_info.callback_func) this->m_info.callback_func();
