@@ -132,10 +132,10 @@ auto create_first_subpass() -> gfx::Subpass {
   });
 
   subpass.name = "GBufferPass";
-  subpass.attachments.push_back({data->first_pass.views()["position"], cClearColors});
-  subpass.attachments.push_back({data->first_pass.views()["normal"], cClearColors});
-  subpass.attachments.push_back({data->first_pass.views()["albedo"], {0.0f, 0.0f, 0.0f, 0.0f}});
-  subpass.attachments.push_back({data->first_pass.views()["depth"], {1.0f, 1.0f, 1.0f, 1.0f}});
+  subpass.attachments.push_back({"GPosition", data->first_pass.views()["position"], cClearColors});
+  subpass.attachments.push_back({"GNormal", data->first_pass.views()["normal"], cClearColors});
+  subpass.attachments.push_back({"GAlbedo", data->first_pass.views()["albedo"], {0.0f, 0.0f, 0.0f, 0.0f}});
+  subpass.attachments.push_back({"GDepth", data->first_pass.views()["depth"], {1.0f, 1.0f, 1.0f, 1.0f}});
 
   return subpass;
 }
@@ -144,7 +144,7 @@ auto create_second_subpass() -> gfx::Subpass {
   auto subpass = gfx::Subpass();
   auto attachment = gfx::Attachment();
   subpass.name = "FinalDraw";
-  subpass.attachments.push_back({data->window.image_views(), cClearColors});
+  subpass.attachments.push_back({"GCombined", data->window.image_views(), cClearColors});
   subpass.dependencies.insert({"GBufferPass", "position"});
   subpass.dependencies.insert({"GBufferPass", "normal"});
   subpass.dependencies.insert({"GBufferPass", "albedo"});

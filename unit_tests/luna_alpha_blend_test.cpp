@@ -9,6 +9,9 @@
 #include "draw_vert.hpp"
 #include "draw_frag.hpp"
 
+#include "alpha_vert.hpp"
+#include "alpha_frag.hpp"
+
 struct Vertex {
   luna::vec3 position;
   luna::vec3 normal;
@@ -27,8 +30,8 @@ static_assert(sizeof(Transformations) == (sizeof(float) * 2));
 luna::gfx::Window window;
 luna::gfx::RenderPass rp;
 luna::gfx::GraphicsPipeline pipeline;
+luna::gfx::GraphicsPipeline plane_pipeline;
 luna::gfx::FramebufferCreator framebuffers;
-
 constexpr auto cWidth = 1280u;
 constexpr auto cHeight = 1024u;
 constexpr auto cGPU = 0;
@@ -74,6 +77,18 @@ const std::vector<Vertex> cVertices = {
         {{-0.2f,  0.2f,   0.2f},  {0.0f,  1.0f,  0.0f},  {0.0f,  0.0f}},
         {{-0.2f,  0.2f,  -0.2f},  {0.0f,  1.0f,  0.0f},  {0.0f,  1.0f}}
     };
+const std::vector<Vertex> cPlaneVertices = {
+    // positions          // colors           // texture coords
+    {{ 0.5f,  0.5f, 0.0f},  {1.0f, 0.0f, 0.0f},   {1.0f, 1.0f}}, // top right
+    {{ 0.5f, -0.5f, 0.0f},  {0.0f, 1.0f, 0.0f},   {1.0f, 0.0f}}, // bottom right
+    {{-0.5f, -0.5f, 0.0f},  {0.0f, 0.0f, 1.0f},   {0.0f, 0.0f}}, // bottom left
+    {{-0.5f,  0.5f, 0.0f},  {1.0f, 1.0f, 0.0f},   {0.0f, 1.0f}}  // top left 
+};
+
+const std::vector<unsigned> cPlaneIndices = {
+    0, 1, 3, // first triangle
+    1, 2, 3  // second triangle
+};
 
 bool running = true;
 
@@ -114,17 +129,36 @@ auto init_graphics_pipeline() -> void {
   pipeline = luna::gfx::GraphicsPipeline(rp, pipe_info);
 }
 
+auto init_plane_pipeline() -> void {
+  auto pipe_info = gfx::GraphicsPipelineInfo();
+  pipe_info.gpu = cGPU;
+  pipe_info.initial_viewport = {};
+  auto vert_shader = std::vector<uint32_t>(alpha_vert, std::end(alpha_vert));
+  auto frag_shader = std::vector<uint32_t>(alpha_frag, std::end(alpha_frag));
+  // Uses attachment name, which is defaulted to "Default".
+  pipe_info.details.blend_funcs["Default"] = gfx::ColorBlendStyle::Alpha; 
+  pipe_info.shaders = {{"vertex", luna::gfx::ShaderType::Vertex, vert_shader}, {"fragment", luna::gfx::ShaderType::Fragment, frag_shader}};
+  pipe_info.details.depth_test = true;
+  plane_pipeline = luna::gfx::GraphicsPipeline(rp, pipe_info);
+}
+
 auto draw_loop() -> void {
   Transformations* transforms = nullptr;
-
   auto cmd = gfx::MultiBuffered<gfx::CommandList>(cGPU);
   auto bind_group = pipeline.create_bind_group();
+  auto bind_group_2 = plane_pipeline.create_bind_group();
+
   auto img = gfx::Image({"Default_Image", 0, 1024, 1024}); // Name, gpu, width, height
   auto gpu_transforms = gfx::Vector<Transformations>(cGPU, 1);
   auto vertices = gfx::Vector<Vertex>(cGPU, cVertices.size());
+  auto plane_vertices = gfx::Vector<Vertex>(cGPU, cPlaneVertices.size());
+  auto plane_indices = gfx::Vector<unsigned>(cGPU, cPlaneIndices.size());
   auto event_handler = gfx::EventRegister();
   
   img.upload(DEFAULT_bmp + cBMPImageHeaderOffset);
+  vertices.upload(cVertices.data());
+  plane_vertices.upload(cPlaneVertices.data());
+  plane_indices.upload(cPlaneIndices.data());
 
   auto event_cb = [&transforms](const gfx::Event& event) {
     constexpr auto cOffsetAmt = 0.01;
@@ -135,12 +169,13 @@ auto draw_loop() -> void {
       default: break;
     };
   };
-
   event_handler.add(event_cb);
+  
   gpu_transforms.map(&transforms);
-  vertices.upload(cVertices.data());
+  bind_group_2.set(gpu_transforms, "transform");
   bind_group.set(gpu_transforms, "transform");
   bind_group.set(img, "cube_texture");
+
   transforms->model = 0;
   transforms->offset = 0.4f;
   auto start_time = std::chrono::system_clock::now();
@@ -161,9 +196,11 @@ auto draw_loop() -> void {
     // Draw some stuff...
     cmd->begin();
     cmd->start_draw(rp, window.current_frame());
-    cmd->bind(bind_group);
     cmd->viewport({});
+    cmd->bind(bind_group);
     cmd->draw(vertices);
+    cmd->bind(bind_group_2);
+    cmd->draw(plane_vertices, plane_indices);
     cmd->end_draw();
     cmd->end();
 
@@ -193,6 +230,7 @@ auto draw_loop() -> void {
 
 auto main(int argc, const char* argv[]) -> int {
   luna::init_graphics_pipeline();
+  luna::init_plane_pipeline();
   luna::draw_loop();
   return 0;
 }

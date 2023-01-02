@@ -16,7 +16,7 @@ Window::Window(WindowInfo info) {
   auto& swap = res.swapchains[this->m_handle];
 
   res.windows[this->m_handle] = std::move(vulkan::Window(info));
-  swap = std::move(vulkan::Swapchain(info.gpu, res.windows[this->m_handle].surface(), false));
+  swap = std::move(vulkan::Swapchain(info.gpu, info.title, res.windows[this->m_handle].surface(), false));
   this->m_info = info;
 }
 
@@ -81,7 +81,6 @@ auto Window::image_views() -> std::vector<ImageView> {
   auto& swap = res.swapchains[this->m_handle];
   auto images = swap.images();
 
-  
   auto ret = std::vector<ImageView>();
   ret.reserve(images.size());
   for(auto& swap_img : images) {

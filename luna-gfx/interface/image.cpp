@@ -8,7 +8,7 @@ namespace gfx {
 Image::Image(ImageInfo info, const unsigned char* initial_data) {
   auto usage = vulkan::usage_from_format(info.format);
   this->m_handle = luna::vulkan::create_image(info, vk::ImageLayout::eUndefined, usage, nullptr);
-  this->m_info = info;
+  this->info() = info;
   if(initial_data != nullptr) {
     this->upload_raw(initial_data);
   }
@@ -22,15 +22,19 @@ Image::~Image() {
   // In other words, if its imported, this is just a view to that image. Maybe should be a separate type? Idk.
   if(!img.imported) vulkan::destroy_image(this->m_handle);
   this->m_handle = -1;
-  this->m_info = {};
+  this->info() = {};
+}
+
+[[nodiscard]] inline auto Image::info() const -> ImageInfo {
+  return vulkan::global_resources().images[this->m_handle].info;
 }
 
 auto Image::upload_raw(const unsigned char* ptr) -> void {
-    auto amt = this->m_info.width * this->m_info.height * luna::vulkan::size_from_format(this->m_info.format);
-    auto tmp_buffer = MemoryBuffer(this->m_info.gpu, amt, MemoryType::CPUVisible);
+    auto amt = this->info().width * this->info().height * luna::vulkan::size_from_format(this->info().format);
+    auto tmp_buffer = MemoryBuffer(this->info().gpu, amt, MemoryType::CPUVisible);
     tmp_buffer.upload(ptr);
 
-    auto cmd = luna::vulkan::create_cmd(this->m_info.gpu);
+    auto cmd = luna::vulkan::create_cmd(this->info().gpu);
     luna::vulkan::begin_command_buffer(cmd);
     luna::vulkan::copy_buffer_to_image(cmd, tmp_buffer.handle(), this->handle());
     luna::vulkan::end_command_buffer(cmd);

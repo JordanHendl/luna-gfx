@@ -27,6 +27,35 @@ inline auto create_dynamic_state() {
     vk::DynamicState::eScissor
   };
 }
+
+auto color_blend_from_style(gfx::ColorBlendStyle style) {
+  auto color = vk::PipelineColorBlendAttachmentState();
+  auto color_blend_mask = vk::ColorComponentFlags();
+  
+  switch(style) {
+    case gfx::ColorBlendStyle::Alpha :
+      color_blend_mask =
+      (vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
+      color.setColorWriteMask(color_blend_mask);
+      color.setBlendEnable(true);
+      color.setSrcColorBlendFactor(vk::BlendFactor::eSrcAlpha);
+      color.setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha);
+      color.setColorBlendOp(vk::BlendOp::eAdd);
+      color.setSrcAlphaBlendFactor(vk::BlendFactor::eOne);
+      color.setDstAlphaBlendFactor(vk::BlendFactor::eZero);
+      color.setAlphaBlendOp(vk::BlendOp::eAdd);
+      return color;
+    default: 
+      color_blend_mask =
+      (vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
+      color.setColorWriteMask(color_blend_mask);
+      color.setBlendEnable(false);
+    return color;
+  }
+}
+
 Pipeline::Pipeline() {}
 
 Pipeline::~Pipeline() {
@@ -62,7 +91,6 @@ Pipeline::Pipeline(RenderPass& pass, const gfx::GraphicsPipelineInfo& info)
     subpass_index++;
   }
 
-  this->m_color_blend_attachments.resize(num_framebuffers);
   this->init_params();
   this->m_device      = pass.device() ;
   this->m_render_pass = &pass          ;
@@ -114,11 +142,6 @@ auto Pipeline::init_params() -> void {
                                 vk::ShaderStageFlagBits::eFragment |
                                 vk::ShaderStageFlagBits::eCompute;
 
-  vk::ColorComponentFlags color_blend_mask;
-
-  color_blend_mask =
-      (vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
   this->m_sample_mask = 0xFFFFFFFF;
   this->m_rasterization_info.setDepthClampEnable(false);
   this->m_rasterization_info.setRasterizerDiscardEnable(false);
@@ -137,17 +160,6 @@ auto Pipeline::init_params() -> void {
   this->m_multisample_info.setAlphaToCoverageEnable(false);
   this->m_multisample_info.setPSampleMask(&this->m_sample_mask);
   this->m_multisample_info.setRasterizationSamples(vk::SampleCountFlagBits::e1);
-
-  for(auto& color : this->m_color_blend_attachments) {
-    color.setColorWriteMask(color_blend_mask);
-    color.setBlendEnable(false);
-    color.setSrcColorBlendFactor(vk::BlendFactor::eSrcAlpha);
-    color.setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha);
-    color.setColorBlendOp(vk::BlendOp::eAdd);
-    color.setSrcAlphaBlendFactor(vk::BlendFactor::eOne);
-    color.setDstAlphaBlendFactor(vk::BlendFactor::eZero);
-    color.setAlphaBlendOp(vk::BlendOp::eAdd);
-  }
   
   this->m_color_blend_info.setLogicOpEnable(false);
   this->m_color_blend_info.setLogicOp(vk::LogicOp::eCopy);
@@ -252,7 +264,20 @@ auto Pipeline::parse(const gfx::GraphicsPipelineInfo& info) -> void {
 
   this->m_assembly_info.setTopology(convert(info.details.topology));
   this->addViewport(info.initial_viewport);
-  
+  for(auto& subpass : this->m_render_pass->subpasses()) {
+    if(subpass.name == info.subpass) {
+      for(auto& attach : subpass.luna_attachments) {
+        auto style = gfx::ColorBlendStyle::None;
+        auto iter = info.details.blend_funcs.find(attach.name); // Assuming that an attachment has valid image views.
+        if(iter != info.details.blend_funcs.end()) {
+          style = iter->second;
+        }
+        if(attach.views[0].format() != gfx::ImageFormat::Depth) {
+          this->m_color_blend_attachments.push_back(color_blend_from_style(style));
+        }
+      }
+    };
+  }
   // @JH TODO add more config to parse.
 }
 
