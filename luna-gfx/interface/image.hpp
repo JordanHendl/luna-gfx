@@ -42,7 +42,6 @@ class Image {
 
     auto operator=(Image&& mv) -> Image& {
       this->m_handle = mv.m_handle;
-      this->m_info = mv.m_info;
       mv.m_handle = -1;
       return *this;
     }
@@ -53,12 +52,11 @@ class Image {
     }
 
     [[nodiscard]] inline auto handle() const -> std::int32_t {return this->m_handle;}
-    [[nodiscard]] inline auto info() const {return this->m_info;}
+    [[nodiscard]] inline auto info() const -> ImageInfo;
   private:
     auto upload_raw(const unsigned char* ptr) -> void;
     friend class Window;
     std::int32_t m_handle;
-    ImageInfo m_info;
 };
 
 // A const view into an image.

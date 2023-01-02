@@ -8,11 +8,12 @@
 #include <algorithm>
 namespace luna {
 namespace vulkan {
-Swapchain::Swapchain(int32_t device, vk::SurfaceKHR surface, bool vsync) {
+Swapchain::Swapchain(int32_t device, std::string name, vk::SurfaceKHR surface, bool vsync) {
   this->m_gpu = device;
   this->m_surface = surface;
   this->m_vsync = vsync;
   this->m_current_frame = 0;
+  this->m_name = name;
   this->check_support();
   this->recreate();
   this->m_was_recreated = false; // Reset the flag set by ::recreate() because this is initialization.
@@ -43,7 +44,8 @@ auto Swapchain::operator=(Swapchain&& mv) -> Swapchain& {
   this->m_skip_frame = mv.m_skip_frame;
   this->m_vsync = mv.m_vsync;
   this->m_format = mv.m_format;
-
+  this->m_name = std::move(mv.m_name);
+  
   mv.m_fences.clear();
   mv.m_fences_in_flight.clear();
   mv.m_formats.clear();
@@ -137,6 +139,7 @@ auto Swapchain::gen_images() -> void {
   info.format = convert(this->m_surface_format.format);
   info.num_mips = 1;
   info.layers = 1;
+  info.name = this->m_name;
   auto images = error(gpu.gpu.getSwapchainImagesKHR(this->m_swapchain, gpu.m_dispatch));
   this->m_images.reserve(images.size());
 

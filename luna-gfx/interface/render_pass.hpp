@@ -15,6 +15,7 @@ enum class AttachmentType {
 
 struct Attachment {
   // For N-style buffering.
+  std::string name = "Default";
   std::vector<ImageView> views;
   std::array<float, 4> clear_color = {0, 0, 0, 0};
 };

@@ -265,16 +265,19 @@ auto Pipeline::parse(const gfx::GraphicsPipelineInfo& info) -> void {
   this->m_assembly_info.setTopology(convert(info.details.topology));
   this->addViewport(info.initial_viewport);
   for(auto& subpass : this->m_render_pass->subpasses()) {
-    for(auto& attach : subpass.luna_attachments) {
-      auto style = gfx::ColorBlendStyle::None;
-      auto iter = info.details.blend_funcs.find(attach.views[0].name()); // Assuming that an attachment has valid image views.
-      if(iter != info.details.blend_funcs.end()) {
-        style = iter->second;
+    if(subpass.name == info.subpass) {
+      for(auto& attach : subpass.luna_attachments) {
+        auto style = gfx::ColorBlendStyle::None;
+        auto iter = info.details.blend_funcs.find(attach.name); // Assuming that an attachment has valid image views.
+        if(iter != info.details.blend_funcs.end()) {
+          style = iter->second;
+        }
+        if(attach.views[0].format() != gfx::ImageFormat::Depth) {
+          this->m_color_blend_attachments.push_back(color_blend_from_style(style));
+        }
       }
-      this->m_color_blend_attachments.push_back(color_blend_from_style(style));
-    }
+    };
   }
-  
   // @JH TODO add more config to parse.
 }
 

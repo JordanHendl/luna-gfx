@@ -15,7 +15,7 @@ struct CommandBuffer;
 class Swapchain {
  public:
   Swapchain() = default;
-  Swapchain(int32_t device, vk::SurfaceKHR window, bool vsync);
+  Swapchain(int32_t device, std::string name, vk::SurfaceKHR window, bool vsync);
   Swapchain(Swapchain&& mv);
   ~Swapchain();
   auto operator=(Swapchain&& mv) -> Swapchain&;
@@ -60,7 +60,8 @@ class Swapchain {
   vk::SurfaceFormatKHR m_surface_format;
   vk::SurfaceKHR m_surface;
   vk::Extent2D m_extent;
-  
+  std::string m_name;
+
   unsigned m_current_frame;
   bool m_skip_frame;
   bool m_vsync;

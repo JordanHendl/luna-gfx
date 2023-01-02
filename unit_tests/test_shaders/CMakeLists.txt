@@ -2,6 +2,8 @@ add_custom_target(shader_compilation)
 include(CompileShader)
 
 set(shader_srcs
+  alpha.vert
+  alpha.frag
   draw.vert
   draw.frag
   simple.vert

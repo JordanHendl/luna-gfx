@@ -214,7 +214,18 @@ inline auto cmd_buffer_draw(int32_t cmd_handle, int32_t vertices_id, size_t vert
   cmd.cmd.draw(vertex_count, instance_count, 0, 0, gpu.m_dispatch);
 }
 
-inline auto cmd_buffer_draw(int32_t cmd_handle, int32_t vertices, size_t vert_count, int32_t indices,  size_t idx_count, size_t instance_count) -> void {
+inline auto cmd_buffer_draw(int32_t cmd_handle, int32_t vertices_id, size_t vertex_count, int32_t indices_id,  size_t idx_count, size_t instance_count) -> void {
+  auto& res = global_resources();
+  auto& cmd = res.cmds[cmd_handle];
+  auto& gpu = res.devices[cmd.gpu];
+  auto& vertices = res.buffers[vertices_id];
+  auto& indices = res.buffers[indices_id];
+
+  auto offset = vk::DeviceSize(0);
+  auto index_type = vk::IndexType::eUint32;
+  cmd.cmd.bindVertexBuffers(0, 1, &vertices.buffer, &offset, gpu.m_dispatch);
+  cmd.cmd.bindIndexBuffer(indices.buffer, offset, index_type, gpu.m_dispatch);
+  cmd.cmd.drawIndexed(idx_count, instance_count, 0, 0, 0, gpu.m_dispatch);
 }
 
 inline auto start_timestamp(int32_t cmd_handle, vk::PipelineStageFlagBits stage) -> void {
