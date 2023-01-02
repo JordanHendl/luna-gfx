@@ -13,7 +13,7 @@ class Descriptor;
 class Pipeline {
  public:
   Pipeline();
-  Pipeline(Device& gpu, const gfx::ComputePipelineInfo& info);
+  Pipeline(const gfx::ComputePipelineInfo& info);
   Pipeline(RenderPass& gpu, const gfx::GraphicsPipelineInfo& info);
   Pipeline(Pipeline&& mv);
   ~Pipeline();

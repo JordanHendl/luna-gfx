@@ -22,7 +22,6 @@ Image::~Image() {
   // In other words, if its imported, this is just a view to that image. Maybe should be a separate type? Idk.
   if(!img.imported) vulkan::destroy_image(this->m_handle);
   this->m_handle = -1;
-  this->info() = {};
 }
 
 [[nodiscard]] inline auto Image::info() const -> ImageInfo {

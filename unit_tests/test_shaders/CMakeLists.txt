@@ -2,6 +2,7 @@ add_custom_target(shader_compilation)
 include(CompileShader)
 
 set(shader_srcs
+  test.comp
   alpha.vert
   alpha.frag
   draw.vert
@@ -13,4 +14,5 @@ set(shader_srcs
   deferred.vert
   deferred.frag
 )
+
 compile_shader(TARGETS ${shader_srcs})

@@ -203,6 +203,13 @@ inline auto cmd_bind_descriptor(int32_t cmd_handle, int32_t desc_handle) -> void
     cmd.cmd.bindDescriptorSets(bind_point, layout, 0, 1, &desc.set(), 0, nullptr, gpu.m_dispatch);
 }
 
+inline auto cmd_buffer_dispatch(int32_t cmd_handle, size_t x, size_t y, size_t z) -> void {
+  auto& res = global_resources();
+  auto& cmd = res.cmds[cmd_handle];
+  auto& gpu = res.devices[cmd.gpu];
+  cmd.cmd.dispatch(x, y, z, gpu.m_dispatch);
+}
+
 inline auto cmd_buffer_draw(int32_t cmd_handle, int32_t vertices_id, size_t vertex_count, size_t instance_count) -> void {
   auto& res = global_resources();
   auto& cmd = res.cmds[cmd_handle];
@@ -633,6 +640,15 @@ inline auto create_graphics_pipeline(int32_t rp_handle, gfx::GraphicsPipelineInf
   auto& pipe = res.pipelines[index];
   
   pipe = std::move(Pipeline(rp, info));
+  return index;
+}
+
+inline auto create_compute_pipeline(gfx::ComputePipelineInfo info) -> int32_t {
+  auto& res = global_resources();
+  auto index = find_valid_entry(res.pipelines);
+  auto& pipe = res.pipelines[index];
+  
+  pipe = std::move(Pipeline(info));
   return index;
 }
 

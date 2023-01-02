@@ -90,9 +90,11 @@ struct GraphicsPipelineInfo {
 
 struct ComputePipelineInfo {
   using SPIRV = std::vector<std::uint32_t>;
+  using PreLoadedFile = std::vector<char>;
+  using Filename = std::string;
 
   // Either a SPIRV buffer, an inline-glsl shader, or a filename to request the library to load.
-  using ShaderData = std::variant<SPIRV, std::vector<char>, std::string>;
+  using ShaderData = std::variant<SPIRV, PreLoadedFile, Filename>;
 
   struct ShaderInfo {
     std::string name;
@@ -107,13 +109,32 @@ struct ComputePipelineInfo {
   ShaderInfo shaders;
 };
 
+class ComputePipeline {
+public:
+  ComputePipeline(const ComputePipeline& cpy) = delete;
+  auto operator=(const ComputePipeline& cpy) -> ComputePipeline& = delete;
+
+  ComputePipeline() {this->m_handle = -1;}
+  ComputePipeline(ComputePipelineInfo info);
+  ComputePipeline(ComputePipeline&& mv) {*this = std::move(mv);}
+  ~ComputePipeline();
+
+  [[nodiscard]] auto create_bind_group() -> BindGroup;
+  [[nodiscard]] inline auto handle() const {return this->m_handle;}
+  [[nodiscard]] inline auto info() const {return this->m_info;}
+  auto operator=(ComputePipeline&& mv) -> ComputePipeline& {this->m_handle = mv.m_handle; mv.m_handle = -1; this->m_info = mv.m_info; return *this;};
+  private:
+    std::int32_t m_handle;
+    ComputePipelineInfo m_info;
+};
+
 class GraphicsPipeline {
 public:
   GraphicsPipeline(const GraphicsPipeline& cpy) = delete;
   auto operator=(const GraphicsPipeline& cpy) -> GraphicsPipeline& = delete;
 
   GraphicsPipeline() {this->m_handle = -1;}
-  GraphicsPipeline(const RenderPass& pass, GraphicsPipelineInfo info, int subpass = 0);
+  GraphicsPipeline(const RenderPass& pass, GraphicsPipelineInfo info);
   GraphicsPipeline(GraphicsPipeline&& mv) {*this = std::move(mv);}
   ~GraphicsPipeline();
 

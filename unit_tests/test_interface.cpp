@@ -16,6 +16,7 @@
 
 #include "simple_vert.hpp"
 #include "simple_frag.hpp"
+#include "test_comp.hpp"
 
 struct vec3 {
   float x;
@@ -255,6 +256,7 @@ TEST(Interface, MapBuffer)  {
     EXPECT_EQ(container.size(), buffer.size() / sizeof(float));
   }
 }
+
 TEST(Interface, InitializeBufferWithData) {
   float* tmp = nullptr;
   constexpr auto cGPU = 0;
@@ -366,6 +368,7 @@ TEST(Interface, CommandListDraw) {
   cmd.end_draw  (); // Tell backend to stop drawing to that render pass. (Can attach a separate one if you want)
   cmd.end();
   auto fence = cmd.submit();
+  fence.wait();
   EXPECT_GE(pipeline.handle(), 0);
 }
 
@@ -517,6 +520,35 @@ TEST(Interface, CommandListDrawToWindow) {
 
     // Wait for command to finish. Don't have to in realtime, but since this is looping we need to do so.
     fence.wait();
+  }
+}
+
+TEST(Interface, ComputePipeline) {
+  constexpr auto cGPU = 0;
+  constexpr auto cSize = 1024;
+  constexpr auto cBaseValue = 0.0f;
+  constexpr auto cTrueValue = 500.f;
+  auto comp_shader = std::vector<uint32_t>(test_comp, std::end(test_comp));
+  auto pipeline = gfx::ComputePipeline({cGPU, {"compute", luna::gfx::ShaderType::Compute, comp_shader}});
+  auto bg = pipeline.create_bind_group();
+  auto cmd = gfx::CommandList(cGPU);
+  auto buffer = gfx::Vector<float>(cGPU, cSize);
+
+  // Upload base data
+  auto tmp = std::vector<float>(cSize, cBaseValue);
+  buffer.upload(tmp.data());
+  bg.set(buffer, "in_data");
+
+  cmd.begin();
+  cmd.bind(bg);
+  cmd.dispatch(1u, 1u, 1u);
+  cmd.end();
+  auto fence = cmd.submit();
+  fence.wait();
+
+  auto mapped = buffer.get_mapped_container();
+  for(auto& f : mapped) {
+    EXPECT_EQ(f, cTrueValue);
   }
 }
 }

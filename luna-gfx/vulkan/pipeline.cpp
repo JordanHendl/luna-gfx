@@ -1,3 +1,4 @@
+#include "luna-gfx/vulkan/global_resources.hpp"
 #include "luna-gfx/vulkan/vulkan_defines.hpp"
 #include "luna-gfx/vulkan/pipeline.hpp"
 #include <cstdio>
@@ -69,10 +70,10 @@ Pipeline::~Pipeline() {
                                      this->m_device->m_dispatch);
 }
 
-Pipeline::Pipeline(Device& device, const gfx::ComputePipelineInfo& info) {
-  this->m_device = &device;
-
-  this->m_shader = std::make_unique<Shader>(device, info);
+Pipeline::Pipeline(const gfx::ComputePipelineInfo& info) {
+  auto& res = global_resources();
+  this->m_device = &res.devices[info.gpu];
+  this->m_shader = std::make_unique<Shader>(*this->m_device, info);
   this->m_pool.initialize(*this);
   this->init_params();
   this->createLayout();

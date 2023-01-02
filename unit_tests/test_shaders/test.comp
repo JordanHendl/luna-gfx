@@ -1,0 +1,14 @@
+#version 450 core
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive    : enable
+#define WORKGROUP_SIZE 1024
+layout(local_size_x=WORKGROUP_SIZE) in;
+
+layout( binding = 10 ) writeonly buffer TestData { 
+float data[];
+} in_data;
+
+void main()
+{
+  in_data.data[gl_LocalInvocationID.x] = 500.f;
+}
