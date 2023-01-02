@@ -450,7 +450,46 @@ Shader::Shader(const GraphicsPipelineInfo& info, std::vector<std::string> includ
 }
 
 Shader::Shader(const ComputePipelineInfo& info, std::vector<std::string> include_dirs) {
-  LunaAssert(false, "Compute pipelines are not yet implemented.")
+  this->data = std::make_unique<Shader::ShaderData>();
+  auto& shader = info.shaders;
+    auto shader_handler = [this, &shader](auto& arg) {
+    using T = std::decay_t<decltype(arg)>;
+    auto stage = Shader::Stage();
+    stage.name = shader.name;
+    stage.type = shader.type;
+    if constexpr (std::is_same_v<T, ComputePipelineInfo::SPIRV>) {
+      stage.spirv = arg;
+      this->data->reflect(stage);
+      this->data->stages.push_back(stage);
+    } 
+    else if constexpr (std::is_same_v<T, ComputePipelineInfo::PreLoadedFile>) {
+      auto kind = convert(shader.type);
+      auto file = std::string(arg.begin(), arg.end());
+      auto preprocessed = this->data->preprocess(shader.name, kind, file);
+      auto assembly = this->data->assemblize(shader.name, kind, preprocessed);
+      auto stage = Shader::Stage();
+      stage.name = shader.name;
+      stage.spirv = this->data->glsl_to_spv(shader.name, kind, file);
+      stage.type = shader.type;
+  
+      this->data->reflect(stage);
+      this->data->stages.push_back(stage);
+    }
+    else if constexpr (std::is_same_v<T, ComputePipelineInfo::Filename>) {
+      auto kind = convert(shader.type);
+      auto file = load_raw_shader(arg);
+      auto preprocessed = this->data->preprocess(shader.name, kind, file);
+      auto assembly = this->data->assemblize(shader.name, kind, preprocessed);
+      auto stage = Shader::Stage();
+      stage.name = shader.name;
+      stage.spirv = this->data->glsl_to_spv(shader.name, kind, file);
+      stage.type = shader.type;
+  
+      this->data->reflect(stage);
+      this->data->stages.push_back(stage);
+    }
+  };
+  std::visit(shader_handler, shader.data);
 }
 
 Shader::Shader(Shader&& mv) {

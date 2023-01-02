@@ -142,7 +142,12 @@ namespace gfx {
     LunaAssert(this->m_handle >= 0, "Unable to record a draw operation as an invalid command buffer.");
     luna::vulkan::cmd_buffer_draw(this->m_handle, vertices.handle(), num_verts, instance_count);
   }
- 
+  
+  auto CommandList::dispatch(std::size_t group_amt_x, std::size_t group_amt_y, std::size_t group_amt_z) -> void {
+    LunaAssert(this->m_handle >= 0, "Unable to record a dispatch operation as an invalid command buffer.");
+    vulkan::cmd_buffer_dispatch(this->m_handle, group_amt_x, group_amt_y, group_amt_z);
+  }
+
   auto CommandList::start_time_stamp() -> void {
     LunaAssert(this->m_handle >= 0, "Unable to record a time stamp start operation as an invalid command buffer.");
     vulkan::start_timestamp(this->m_handle, vk::PipelineStageFlagBits::eTopOfPipe);

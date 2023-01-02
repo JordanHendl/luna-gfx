@@ -83,6 +83,7 @@ class CommandList {
     auto draw(const MemoryBuffer& vertices, std::size_t num_verts, const MemoryBuffer& indices, std::size_t num_indices, std::size_t instance_count = 1) -> void;
     auto draw(const MemoryBuffer& vertices, std::size_t num_verts, std::size_t instance_count = 1) -> void;
 
+    auto dispatch(std::size_t group_amt_x, std::size_t group_amt_y = 1, std::size_t group_amt_z = 1) -> void;
     auto next_subpass() -> void;
     
     [[nodiscard]] auto queue() const {return this->m_type;}
