@@ -36,6 +36,7 @@ macro(ConfigurePackaging)
   set(CPACK_COMPONENT_DEVEL_REQUIRED release)
   set(CPACK_RPM_DEVEL_PACKAGE_REQUIRES ${CMAKE_PROJECT_NAME}-release) 
   set(CPACK_RPM_TOOLS_PACKAGE_REQUIRES ${CMAKE_PROJECT_NAME}-release) 
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY "Luna")
 
   # Configure the platform/generator-specific parameters.
   ConfigurePlatformPackaging() # From Package<Platform>.cmake
@@ -53,14 +54,14 @@ endmacro()
 
 macro(ExportPackage)
   #install(TARGETS gfx gfx_interface vulkan_impl gfx_common vma_lib spirv_reflect gfx_extended stb_tools
-  install(TARGETS gfx gfx_interface vulkan_impl gfx_common vma_lib spirv_reflect gfx_extended stb_tools
-          EXPORT lunagfx COMPONENT release
+  install(TARGETS gfx gfx_interface vulkan_impl gfx_common vma_lib math spirv_reflect gfx_extended stb_tools
+          EXPORT luna-gfx COMPONENT release
           ARCHIVE  DESTINATION ${EXPORT_LIB_DIR}
           RUNTIME  DESTINATION ${EXPORT_LIB_DIR}
           LIBRARY  DESTINATION ${EXPORT_LIB_DIR}
           INCLUDES DESTINATION ${EXPORT_INCLUDE_DIR} )
 
-  install(EXPORT lunagfx FILE lunagfx-config.cmake 
+  install(EXPORT luna-gfx FILE luna-gfx-config.cmake 
                        DESTINATION cmake 
                        NAMESPACE   luna::
                        COMPONENT   devel )

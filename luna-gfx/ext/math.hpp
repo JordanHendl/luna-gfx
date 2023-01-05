@@ -30,8 +30,29 @@ struct vec4_t {
     return *this;
   }
 
+  auto operator+(const T& val) const -> vec4_t {
+    auto tmp = vec4_t<T>();
+    tmp = *this;
+    tmp.x += val;
+    tmp.y += val;
+    tmp.z += val;
+    tmp.w += val;
+    return tmp;
+  }
+
   template<typename G>
-  auto operator*(const G& val) -> vec4_t {
+  auto operator+(const G& val) const -> vec4_t {
+    auto tmp = vec4_t<T>();
+    tmp = *this;
+    tmp.x += val.x;
+    tmp.y += val.y;
+    tmp.z += val.z;
+    tmp.w += val.w;
+    return tmp;
+  }
+
+  template<typename G>
+  auto operator*(const G& val) const -> vec4_t {
     auto tmp = vec4_t<T>();
     tmp = *this;
     tmp.x *= val.x;
@@ -41,7 +62,7 @@ struct vec4_t {
     return tmp;
   }
 
-  auto operator*(T val) -> vec4_t {
+  auto operator*(T val) const -> vec4_t {
     auto tmp = vec4_t<T>();
     tmp = *this;
     tmp.x *= val;
@@ -70,8 +91,8 @@ struct vec4_t {
 template<typename T>
 struct vec3_t {
   T x, y, z;
-  vec3_t() = default;
-  vec3_t(T r, T g, T b) : x(r), y(g), z(b) {};
+  constexpr vec3_t() = default;
+  constexpr vec3_t(T r, T g, T b) : x(r), y(g), z(b) {};
 
   constexpr auto length() const {return 3u;}
   [[nodiscard]] auto operator[](std::size_t index) const -> const T& {return *(reinterpret_cast<const T*>(this) + index);}
@@ -104,10 +125,30 @@ struct vec3_t {
     return tmp;
   }
 
-  auto operator-() -> vec3_t& {
-    this->x = -x;
-    this->y = -y;
-    this->z = -z;
+    auto operator+(const T& val) -> vec3_t {
+    auto tmp = vec3_t<T>();
+    tmp = *this;
+    tmp.x += val;
+    tmp.y += val;
+    tmp.z += val;
+    return tmp;
+  }
+
+  template<typename G>
+  auto operator+(const G& val) -> vec3_t {
+    auto tmp = vec3_t<T>();
+    tmp = *this;
+    tmp.x += val.x;
+    tmp.y += val.y;
+    tmp.z += val.z;
+    return tmp;
+  }
+
+  auto operator-() -> vec3_t {
+    auto tmp = vec3_t<T>();
+    tmp.x = -x;
+    tmp.y = -y;
+    tmp.z = -z;
     return *this;
   }
 
@@ -149,17 +190,43 @@ struct vec2_t {
   }
 
   template<typename G>
-  auto operator*(const G& val) -> vec2_t& {
-    for(auto index = 0u; index < length(); ++index) {
-      this->values[index] *= val[index];
-    }
-    return *this;
+  auto operator*(const G& val) -> vec2_t {
+    auto tmp = vec2_t<T>();
+    tmp = *this;
+    tmp.x *= val.x;
+    tmp.y *= val.y;
+    return tmp;
   }
 
-  auto operator*(T val) -> vec2_t& {
-    for(auto index = 0u; index < length(); ++index) {
-      this->values[index] *= val;
-    }
+  auto operator*(T val) -> vec2_t {
+    auto tmp = vec2_t<T>();
+    tmp = *this;
+    tmp.x *= val;
+    tmp.y *= val;
+    return tmp;
+  }
+
+    auto operator+(const T& val) -> vec2_t {
+    auto tmp = vec3_t<T>();
+    tmp = *this;
+    tmp.x += val;
+    tmp.y += val;
+    return tmp;
+  }
+
+  template<typename G>
+  auto operator+(const G& val) -> vec2_t {
+    auto tmp = vec3_t<T>();
+    tmp = *this;
+    tmp.x += val.x;
+    tmp.y += val.y;
+    return tmp;
+  }
+
+  auto operator-() -> vec2_t {
+    auto tmp = vec2_t<T>();
+    tmp.x = -x;
+    tmp.y = -y;
     return *this;
   }
 
@@ -282,6 +349,23 @@ auto normalize(T val) -> void {
   const auto d = dot(val, val);
   const auto reverse_sqrt = 1 / std::sqrt(d);
   return val * reverse_sqrt;
+}
+
+template<typename G>
+auto translate(const mat4& t, const G& g) -> mat4 {
+	auto result = t;
+	result[3] = t[0] * g[0] + t[1] * g[1] + t[2] * g[2] + t[3];
+	return result;
+}
+
+template<typename G>
+auto scale(const mat4& t, const G& g) -> mat4 {
+  auto result = t;
+	result[0] = t[0] * g[0];
+	result[1] = t[1] * g[1];
+	result[2] = t[2] * g[2];
+	result[3] = t[3];
+	return result;
 }
 
 template<typename T>

@@ -93,6 +93,30 @@ TEST(MathTest, MatrixMultiplication)
   EXPECT_EQ(output_luna, truth);
 }
 
+TEST(MathTest, Scale) {
+  constexpr auto cScaleVec = luna::vec3(0.5f, 2.0f, 99.f);
+  constexpr auto cGLMScaleVec = glm::vec3(0.5f, 2.0f, 99.f);
+  auto t = luna::mat4();
+  auto g = glm::mat4();
+
+  g = glm::scale(glm::mat4(1.0f), cGLMScaleVec);
+  t = luna::scale(luna::mat4(1.0f), cScaleVec);
+
+  EXPECT_EQ(t, g);
+}
+
+TEST(MathTest, Translation) {
+  constexpr auto cTranslationVec = luna::vec3(0.5f, 2.0f, 99.f);
+  constexpr auto cGLMTranslationVec = glm::vec3(0.5f, 2.0f, 99.f);
+  auto t = luna::mat4();
+  auto g = glm::mat4();
+
+  g = glm::translate(glm::mat4(1.0f), cGLMTranslationVec);
+  t = luna::translate(luna::mat4(1.0f), cTranslationVec);
+
+  EXPECT_EQ(t, g);
+}
+
 TEST(ExtensionLib, MultiBufferedCreation)
 {
   constexpr auto cGPU = 0;
