@@ -4,6 +4,7 @@ set(luna_gfx_ext_headers
   ext.hpp
   math.hpp
   multi_buffered.hpp
+  renderer.hpp
 )
 
 set(luna_gfx_ext_srcs 

@@ -10,27 +10,43 @@ struct ForwardRendererInfo {
 
 };
 
-struct DeferredRendererInfo {
-  std::optional<WindowInfo> window_info;
+struct RendererInfo {
   RenderPassInfo render_pass_info;
-  GraphicsPipelineInfo pipeline_info;
+  std::map<std::string, GraphicsPipelineInfo> pipeline_infos;
 };
 
-class DeferredRenderer {
+class Renderer {
 public:
-  DeferredRenderer();
-  DeferredRenderer(DeferredRendererInfo info);
-  DeferredRenderer(DeferredRenderer&& mv) = default;
-  ~DeferredRenderer();
-  [[nodiscard]] auto next() -> CommandList&;
+  Renderer(const Renderer& cpy) = delete;
+  auto operator=(const Renderer& cpy) -> Renderer& = delete;
+
+  inline Renderer() = default;
+  inline Renderer(RendererInfo info) {
+    this->m_pass = std::move(RenderPass(info.render_pass_info));
+    for(auto& info : info.pipeline_infos) {
+      this->m_pipelines[info.first] = std::move(GraphicsPipeline(this->m_pass, info.second));
+    }
+    this->m_info = info;
+    this->m_lists = gfx::MultiBuffered<gfx::CommandList>(info.render_pass_info.gpu);
+  }
+
+  Renderer(Renderer&& mv) = default;
+  ~Renderer() = default;
+  [[nodiscard]] auto info() {return this->m_info;}
+  [[nodiscard]] auto next() -> CommandList& {
+    auto& tmp = *this->m_lists;
+    this->m_lists.advance();
+    return tmp;
+  }
+
   [[nodiscard]] inline auto pass() const -> const RenderPass& {return this->m_pass;}
-  [[nodiscard]] inline auto window() const -> const std::optional<Window>& {return this->m_window;}
-  [[nodiscard]] inline auto pipeline() const -> const GraphicsPipeline& {return this->m_pipeline;}
+  [[nodiscard]] inline auto pipeline(std::string name) -> GraphicsPipeline& {return this->m_pipelines.at(name);}
+  auto operator=(Renderer&& mv) -> Renderer& = default;
 private:
+  RendererInfo m_info;
   MultiBuffered<CommandList> m_lists;
-  std::optional<Window> m_window;
-  GraphicsPipeline m_pipeline;
   RenderPass m_pass;
+  std::map<std::string, GraphicsPipeline> m_pipelines;
 };
 }
 }
