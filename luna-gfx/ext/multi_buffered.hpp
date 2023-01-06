@@ -23,11 +23,11 @@ class MultiBuffered {
 
     auto advance() -> std::size_t {this->m_curr += 1; if(this->m_curr >= amt) this->m_curr = 0; return this->m_curr;}
     [[nodiscard]] constexpr auto layers() const {return amt;};
-    [[nodiscard]] auto operator=(MultiBuffered&& o) -> MultiBuffered& {this->m_data = std::move(o.m_data); this->m_curr = o.m_curr; return *this;}
     [[nodiscard]] auto operator->() const -> const T* {return &this->m_data[this->m_curr];}
     [[nodiscard]] auto operator->() -> T* {return &this->m_data[this->m_curr];}
     [[nodiscard]] auto operator*() const -> const T& {return this->m_data[this->m_curr];}
     [[nodiscard]] auto operator*() -> T& {return this->m_data[this->m_curr];}
+    auto operator=(MultiBuffered&& o) -> MultiBuffered& {this->m_data = std::move(o.m_data); this->m_curr = o.m_curr; return *this;}
   private:
     std::size_t m_curr;
     std::array<T, amt> m_data;
