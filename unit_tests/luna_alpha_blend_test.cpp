@@ -161,7 +161,7 @@ auto draw_loop() -> void {
   plane_indices.upload(cPlaneIndices.data());
 
   auto event_cb = [&transforms](const gfx::Event& event) {
-    constexpr auto cOffsetAmt = 0.01;
+    constexpr auto cOffsetAmt = 0.01f;
     if(event.type() == gfx::Event::Type::WindowExit) running = false;
     switch(event.key()) {
       case gfx::Key::Up : transforms->offset += cOffsetAmt; break;
