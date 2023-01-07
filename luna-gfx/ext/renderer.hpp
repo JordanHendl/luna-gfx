@@ -6,10 +6,6 @@
 #include <string>
 namespace luna {
 namespace gfx {
-struct ForwardRendererInfo {
-
-};
-
 struct RendererInfo {
   RenderPassInfo render_pass_info;
   std::map<std::string, GraphicsPipelineInfo> pipeline_infos;
