@@ -22,12 +22,13 @@ struct vec4_t {
     return true;
   }
 
-  auto operator-() -> vec4_t& {
+  auto operator-() -> vec4_t {
+    auto tmp = *this;
     this->x = -x;
     this->y = -y;
     this->z = -z;
     this->w = -w;
-    return *this;
+    return tmp;
   }
 
   auto operator+(const T& val) const -> vec4_t {
@@ -149,7 +150,7 @@ struct vec3_t {
     tmp.x = -x;
     tmp.y = -y;
     tmp.z = -z;
-    return *this;
+    return tmp;
   }
 
   template<typename G>
@@ -227,7 +228,7 @@ struct vec2_t {
     auto tmp = vec2_t<T>();
     tmp.x = -x;
     tmp.y = -y;
-    return *this;
+    return tmp;
   }
 
   template<typename G>
