@@ -46,7 +46,7 @@ TEST(MathTest, GLMMatrixCompatability)
   constexpr auto far = 1000.0f;
 
   const auto luna_mat4 = luna::perspective(to_radians(fov), ratio, near, far);
-  const auto glm_mat4 = glm::perspective(glm::radians(fov), ratio, near, far);
+  const auto glm_mat4 = glm::perspectiveRH_ZO(glm::radians(fov), ratio, near, far);
   const auto empty_mat4 = glm::mat4();
 
   EXPECT_EQ(luna_mat4, glm_mat4);

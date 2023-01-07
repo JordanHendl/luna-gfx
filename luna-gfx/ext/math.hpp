@@ -337,12 +337,12 @@ auto perspective(T fovy, T aspect, T znear, T zfar) -> mat4
 {
 	T const tan_half_fov_y = std::tan(fovy / static_cast<T>(2));
 	auto res = mat4(static_cast<T>(0));
-	res[0][0] = static_cast<T>(1) / (aspect * tan_half_fov_y);
-	res[1][1] = static_cast<T>(1) / (tan_half_fov_y);
-	res[2][2] = - (zfar + znear) / (zfar - znear);
-	res[2][3] = - static_cast<T>(1);
-	res[3][2] = - (static_cast<T>(2) * zfar * znear) / (zfar - znear);
-	return res;
+  res[0][0] = static_cast<T>(1) / (aspect * tan_half_fov_y);
+  res[1][1] = -(static_cast<T>(1) / (tan_half_fov_y));
+  res[2][2] = zfar / (znear - zfar);
+  res[2][3] = -static_cast<T>(1);
+  res[3][2] = (znear * zfar) / (znear - zfar);
+  return res;
 }
 
 template<typename T>

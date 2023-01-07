@@ -21,11 +21,9 @@ layout(binding = 1) uniform Transformations {
 
 void main()
 {
-  vec4 world_pos = transform.transform * vec4(in_pos, 1.0);
+  vec4 world_pos = vec4(in_pos, 1.0);
   frag_position = world_pos.xyz; 
   frag_tex_coords = in_tex_coords;
-  mat3 normal_matrix = transpose(inverse(mat3(transform.transform)));
-  frag_normal = normal_matrix * in_normal;
   frag_normal = in_normal;
   gl_Position = camera.view * world_pos;
 }
