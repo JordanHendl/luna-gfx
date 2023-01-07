@@ -1,3 +1,4 @@
+#define GLM_DEPTH_ZERO_TO_ONE
 #include <gtest/gtest.h>
 #include "luna-gfx/gfx.hpp"
 #include "luna-gfx/ext/ext.hpp"
@@ -42,9 +43,9 @@ TEST(MathTest, GLMMatrixCompatability)
   constexpr auto height = 1024.f;
   constexpr auto ratio = width / height;
   constexpr auto near = 0.1f;
-  constexpr auto far = 100.0f;
+  constexpr auto far = 1000.0f;
 
-  const auto luna_mat4 = perspective(to_radians(fov), ratio, near, far);
+  const auto luna_mat4 = luna::perspective(to_radians(fov), ratio, near, far);
   const auto glm_mat4 = glm::perspective(glm::radians(fov), ratio, near, far);
   const auto empty_mat4 = glm::mat4();
 
@@ -95,6 +96,12 @@ TEST(MathTest, MatrixMultiplication)
 
   EXPECT_EQ(identity_test, test_a);
   EXPECT_EQ(output_luna, truth);
+}
+
+TEST(MathTest, NegativeOperator) {
+  auto t1 = vec3{0.1f, 0.2f, 0.3f};
+  auto t2 = vec3{-0.1f, -0.2f, -0.3f};
+  EXPECT_EQ(-t1, t2);
 }
 
 TEST(MathTest, Scale) {

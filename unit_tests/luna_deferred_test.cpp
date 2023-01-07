@@ -123,7 +123,7 @@ auto create_first_subpass() -> gfx::Subpass {
   auto subpass = gfx::Subpass();
   auto attachment = gfx::Attachment();
 
-  data->first_pass = gfx::FramebufferCreator(cGPU, data->window.info().width, data->window.info().height, 
+  data->first_pass = gfx::FramebufferCreator(cGPU, data->window.width(), data->window.height(), 
   {
     {"position", gfx::ImageFormat::RGBA8},
     {"normal", gfx::ImageFormat::RGBA8},
@@ -156,7 +156,7 @@ auto create_gbuffer_pipeline() -> void {
   // Create Graphics pipeline, attaching it to the render pass we created (pipeline outputs to the render pass)
   auto pipe_info = gfx::GraphicsPipelineInfo();
   pipe_info.gpu = cGPU;
-  pipe_info.initial_viewport = {static_cast<float>(data->window.info().width), static_cast<float>(data->window.info().height)};
+  pipe_info.initial_viewport = {static_cast<float>(data->window.width()), static_cast<float>(data->window.height())};
   pipe_info.subpass = "GBufferPass";
   auto vert_shader = std::vector<uint32_t>(g_buffer_vert, std::end(g_buffer_vert));
   auto frag_shader = std::vector<uint32_t>(g_buffer_frag, std::end(g_buffer_frag));
@@ -168,7 +168,7 @@ auto create_gbuffer_pipeline() -> void {
 auto create_final_pipeline() -> void {
   auto pipe_info = gfx::GraphicsPipelineInfo();
   pipe_info.gpu = cGPU;
-  pipe_info.initial_viewport = {static_cast<float>(data->window.info().width), static_cast<float>(data->window.info().height)};
+  pipe_info.initial_viewport = {static_cast<float>(data->window.width()), static_cast<float>(data->window.height())};
   auto vert_shader = std::vector<uint32_t>(deferred_vert, std::end(deferred_vert));
   auto frag_shader = std::vector<uint32_t>(deferred_frag, std::end(deferred_frag));
   pipe_info.shaders = {{"vertex", luna::gfx::ShaderType::Vertex, vert_shader}, {"fragment", luna::gfx::ShaderType::Fragment, frag_shader}};
@@ -226,10 +226,10 @@ auto init_event_handlers() -> void {
       case gfx::Key::Four : *data->layer = 3; break;
 
       case gfx::Key::W : data->camera.translate(data->camera.front() * camera_speed); break;
-      case gfx::Key::S : data->camera.translate(-(data->camera.front() * camera_speed)); break;
+      case gfx::Key::S : data->camera.translate((-data->camera.front() * camera_speed)); break;
       case gfx::Key::D : data->camera.translate(data->camera.right() * camera_speed); break;
-      case gfx::Key::A : data->camera.translate(-(data->camera.right() * camera_speed)); break;
-      case gfx::Key::Space : data->camera.translate(-(data->camera.up() * camera_speed)); break;
+      case gfx::Key::A : data->camera.translate((-data->camera.right() * camera_speed)); break;
+      case gfx::Key::Space : data->camera.translate((-data->camera.up() * camera_speed)); break;
       case gfx::Key::LShift : data->camera.translate((data->camera.up() * camera_speed)); break;
 
       case gfx::Key::Left : camera_angles.y += rotate_speed; data->camera.rotate_euler(camera_angles); break;
@@ -258,8 +258,8 @@ auto initialize() -> void {
 
   // Set the render area & GPU to make this render pass on.
   info.gpu = cGPU;
-  info.width = data->window.info().width;
-  info.height = data->window.info().height;
+  info.width = data->window.width();
+  info.height = data->window.height();
   data->rp = gfx::RenderPass(info);
 
   create_gbuffer_pipeline();
@@ -277,7 +277,7 @@ auto draw_loop() -> void {
   auto transform = data->transforms.get_mapped_container();
 
   transform[0].model = mat4(1.0f);
-  data->projection = luna::perspective(luna::to_radians(90.f), static_cast<float>(data->window.info().width) / static_cast<float>(data->window.info().height), 0.1f, 1000.f);
+  data->projection = luna::perspective(luna::to_radians(90.f), static_cast<float>(data->window.width()) / static_cast<float>(data->window.height()), 0.1f, 1000.f);
   while(running) {
     auto info = data->camera.info();
     camera[0].view_matrix = data->projection * info.view_matrix;

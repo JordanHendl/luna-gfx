@@ -17,9 +17,7 @@ Perspective::Perspective() {
 }
 
 auto Perspective::translate(vec3 offsets) -> void {
-  this->m_position.x += offsets.x;
-  this->m_position.y += offsets.y;
-  this->m_position.z += offsets.z;
+  this->m_position = this->m_position + offsets;
   this->update();
 }
 
@@ -33,9 +31,7 @@ auto Perspective::rotate_euler(float x, float y, float) -> void {
   this->m_front.y = std::sin(to_radians(pitch));
   this->m_front.z = std::sin(to_radians(yaw)) * std::cos(to_radians(pitch));
 
-  auto front = glm::vec3(m_front.x, m_front.y, m_front.z);
-  front = glm::normalize(front);
-  // also re-calculate the Right and Up vector
+  auto front = glm::normalize(glm::vec3(m_front.x, m_front.y, m_front.z));
   auto right = glm::normalize(glm::cross(front, glm_world_up));
   auto up    = glm::normalize(glm::cross(right, front));  
 
