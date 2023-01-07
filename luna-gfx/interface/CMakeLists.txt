@@ -20,5 +20,6 @@ set(luna_gfx_interface_sources buffer.cpp
                                event.cpp
    )
 add_library(gfx_interface STATIC ${luna_gfx_interface_sources})
-target_link_libraries(gfx_interface PRIVATE vulkan_impl SDL2::SDL2 Vulkan::Headers vulkan-memory-allocator::vulkan-memory-allocator)
+target_include_directories(gfx_interface PRIVATE ${vulkan-memory-allocator_INCLUDE_DIRS} ${Vulkan_INCLUDE_DIRS})
+target_link_libraries(gfx_interface PRIVATE vulkan_impl SDL2::SDL2)
 install(FILES ${luna_gfx_interface_headers} DESTINATION ${header_install_dir}/interface COMPONENT devel)

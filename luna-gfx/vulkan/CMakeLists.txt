@@ -14,4 +14,5 @@ set(vulkan_impl_files
 )
 
 add_library(vulkan_impl STATIC ${vulkan_impl_files})
-target_link_libraries(vulkan_impl PUBLIC gfx_common vma_lib SDL2::SDL2  Vulkan::Headers  vulkan-memory-allocator::vulkan-memory-allocator) 
+target_include_directories(vulkan_impl PRIVATE ${vulkan-memory-allocator_INCLUDE_DIRS} ${Vulkan_INCLUDE_DIRS})
+target_link_libraries(vulkan_impl PUBLIC gfx_common vma_lib SDL2::SDL2) 

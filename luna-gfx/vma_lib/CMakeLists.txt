@@ -1,2 +1,2 @@
 add_library(vma_lib STATIC main.cpp)
-target_link_libraries(vma_lib PUBLIC Vulkan::Headers vulkan-memory-allocator::vulkan-memory-allocator)
+target_include_directories(vma_lib PRIVATE ${vulkan-memory-allocator_INCLUDE_DIRS} ${Vulkan_INCLUDE_DIRS})
