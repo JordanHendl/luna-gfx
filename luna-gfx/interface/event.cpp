@@ -1,4 +1,5 @@
 #include "luna-gfx/interface/event.hpp"
+#include "luna-gfx/error/error.hpp"
 #include <SDL2/SDL.h>
 #include <utility>
 namespace luna {
@@ -203,7 +204,10 @@ auto convert(SDL_Event& event) -> Event {
       lib_event = Event(Event::Type::WindowExit, Key::ESC);
       break;
     }
-    default:;
+    case SDL_TEXTINPUT:
+      lib_event = Event(Event::Type::Text, std::string(event.text.text));
+      break;
+    default: break;
   }
 
   return lib_event;
@@ -249,6 +253,19 @@ auto poll_events() -> void {
       cb(c);
     }
   }
+}
+
+auto get_mouse_position() -> std::pair<int, int> {
+  auto x = 0, y = 0;
+  SDL_GetMouseState(&x, &y);
+  return {x, y};
+}
+auto enable_text_input() -> void {
+  SDL_StartTextInput();
+}
+
+auto disable_text_input() -> void {
+  SDL_StopTextInput();
 }
 }
 }  // namespace luna

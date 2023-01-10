@@ -92,9 +92,10 @@ public:
   Vector(const Vector& cpy) = delete;
   ~Vector() = default;
   auto operator=(const Vector& cpy) -> Vector& = delete;
-  auto operator=(Vector&& mv) -> Vector& = default  ;
+  auto operator=(Vector&& mv) -> Vector& = default;
   [[nodiscard]] inline auto size() const -> std::size_t {return this->m_data.size() / sizeof(T);}
   [[nodiscard]] inline auto get_mapped_container() -> MappedBuffer<T> {return this->m_data.get_mapped_container<T>();}
+  [[nodiscard]] inline auto empty() const -> bool {return this->size() == 0;}
   inline auto flush() -> void {this->m_data.flush();}
   inline auto upload(const T* ptr, std::size_t amt) -> void {this->m_data.upload(ptr, amt);}
   inline auto upload(const T* ptr) -> void {this->m_data.upload(ptr, this->size());}
@@ -116,6 +117,7 @@ private:
 
 auto unmap_mapped_buffer(std::int32_t handle) -> void;
 
+// RAII Memory buffer. Unmaps on deconstruction. Iteratable & usable with std::algorithms.
 template<typename T>
 class MappedBuffer {
 public:

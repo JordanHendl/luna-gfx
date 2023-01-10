@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <string_view>
+#include <utility> // for pair
 namespace luna {
 namespace gfx {
 class Event;
@@ -112,6 +114,7 @@ class Event {
     None,
     KeyDown,
     KeyUp,
+    Text,
     MouseButtonDown,
     MouseButtonUp,
     MouseWheelUp,
@@ -125,16 +128,18 @@ class Event {
   inline Event();
   inline Event(Event::Type type, Key key);
   inline Event(Event::Type type, MouseButton button);
+  inline Event(Event::Type type, std::string text);
   inline Event(const Event& event);
   inline ~Event() = default;
   [[nodiscard]] inline auto type() const -> Type;
   [[nodiscard]] inline auto key() const -> Key;
   [[nodiscard]] inline auto button() const -> MouseButton;
-
+  [[nodiscard]] inline auto string() const -> std::string_view;
  private:
   Type event_type;
   Key event_key;
   MouseButton event_button;
+  std::string event_string;
 };
 
 [[nodiscard]] inline static auto to_string(const Event::Type& event) -> std::string;
@@ -158,6 +163,10 @@ class EventRegister {
   std::unique_ptr<EventRegisterData> m_data;
 };
 
+                                      // x and y
+auto get_mouse_position() -> std::pair<int, int>;
+auto enable_text_input() -> void;
+auto disable_text_input() -> void;
 auto poll_events() -> void;
 
 Event::Event(Event::Type type, Key key) {
@@ -170,6 +179,11 @@ Event::Event(Event::Type type, MouseButton button) {
   this->event_button = button;
 }
 
+Event::Event(Event::Type type, std::string in_str) {
+  this->event_type = type;
+  this->event_string = in_str;
+}
+
 Event::Event() {
   this->event_type = Event::Type::None;
   this->event_button = MouseButton::None;
@@ -179,13 +193,13 @@ Event::Event() {
 Event::Event(const Event& event) {
   this->event_key = event.event_key;
   this->event_type = event.event_type;
+  this->event_string = event.event_string;
 }
 
-auto Event::button() const -> MouseButton { return this->event_button; }
-
-auto Event::type() const -> Event::Type { return this->event_type; }
-
-auto Event::key() const -> Key { return this->event_key; }
+auto Event::button() const -> MouseButton {return this->event_button;}
+auto Event::string() const -> std::string_view {return this->event_string;}
+auto Event::type() const -> Event::Type {return this->event_type;}
+auto Event::key() const -> Key {return this->event_key;}
 
 auto to_string(const Event& event) -> std::string {
   switch (event.type()) {
