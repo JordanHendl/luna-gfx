@@ -20,6 +20,7 @@ inline auto convert(luna::gfx::ImageFormat fmt) -> vk::Format {
     case gfx::ImageFormat::BGRA8: return vk::Format::eB8G8R8A8Srgb;
     case gfx::ImageFormat::RGBA32F: return vk::Format::eR32G32B32A32Sfloat;
     case gfx::ImageFormat::Depth: return vk::Format::eD24UnormS8Uint;
+    case gfx::ImageFormat::R8: return vk::Format::eR8Srgb;
     default: return vk::Format::eR8G8B8A8Srgb;
   }
 }
@@ -30,6 +31,7 @@ inline auto convert(vk::Format fmt) -> gfx::ImageFormat {
     case vk::Format::eB8G8R8A8Srgb: return gfx::ImageFormat::BGRA8;
     case vk::Format::eR32G32B32A32Sfloat: return gfx::ImageFormat::RGBA32F;
     case vk::Format::eD24UnormS8Uint: return gfx::ImageFormat::Depth;
+    case vk::Format::eR8Srgb : return gfx::ImageFormat::R8;
     default: return gfx::ImageFormat::RGBA8;
   }
 }
@@ -37,7 +39,10 @@ inline auto convert(vk::Format fmt) -> gfx::ImageFormat {
 inline auto size_from_format(gfx::ImageFormat fmt) -> size_t {
   switch(fmt) {
     case gfx::ImageFormat::Depth : return sizeof(float);
+    case gfx::ImageFormat::RGB32F : return sizeof(float) * 3;
     case gfx::ImageFormat::RGBA32F : return sizeof(float) * 4;
+    case gfx::ImageFormat::R8 : return 1;
+    case gfx::ImageFormat::RGB8 : return 3;
     case gfx::ImageFormat::RGBA8 : [[fallthrough]];
     case gfx::ImageFormat::BGRA8 : [[fallthrough]];
     default : return 4;
@@ -456,6 +461,7 @@ inline auto usage_from_format(gfx::ImageFormat format) {
   using Usage = vk::ImageUsageFlagBits;
   switch(format) {
     case gfx::ImageFormat::Depth: return Usage::eDepthStencilAttachment | Usage::eTransferSrc | Usage::eTransferDst;
+    case gfx::ImageFormat::R8 : return Usage::eTransferSrc | Usage::eTransferDst | Usage::eSampled;
     default : return standard_image_usage();
   }
 }

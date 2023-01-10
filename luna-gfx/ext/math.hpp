@@ -171,22 +171,18 @@ struct vec3_t {
 template<typename T>
 struct vec2_t {
   vec2_t() = default;
-  vec2_t(T r, T g) : values{r, g} {};
+  vec2_t(T r, T g) : x(r), y(g) {};
+  T x, y;
 
-  union {
-    T x, y;
-    T values[2];
-  };
-
+  
   constexpr auto length() const {return 2u;}
-  [[nodiscard]] auto operator[](std::size_t index) const -> const T& {return values[index];}
-  [[nodiscard]] auto operator[](std::size_t index) -> T& {return values[index];}
+  [[nodiscard]] auto operator[](std::size_t index) const -> const T& {return *(reinterpret_cast<const T*>(this) + index);}
+  [[nodiscard]] auto operator[](std::size_t index) -> T& {return *(reinterpret_cast<T*>(this) + index);}
 
   template<typename G>
   auto operator==(const G& cmp) const -> bool {
-    for(auto i = 0u; i < length(); ++i) {
-      if(values[i] != cmp[i]) return false;
-    }
+    if(this->x != cmp.x) return false;
+    if(this->y != cmp.y) return false;
     return true;
   }
 
@@ -239,9 +235,8 @@ struct vec2_t {
   // We can become any type.
   template<typename G>
   auto operator=(const G& cpy) -> vec2_t& {
-    for(auto i = 0u; i < length(); ++i) {
-      values[i] = cpy[i];
-    }
+    this->x = cpy.x;
+    this->y = cpy.y;
     return *this;
   }
 };
@@ -379,6 +374,9 @@ using vec4 = vec4_t<float>;
 using vec3 = vec3_t<float>;
 using vec2 = vec2_t<float>;
 
+using ivec4 = vec4_t<int>;
+using ivec3 = vec3_t<int>;
+using ivec2 = vec2_t<int>;
 static_assert(sizeof(mat4) == sizeof(float) * 16);
 static_assert(sizeof(vec4) == sizeof(float) * 4);
 static_assert(sizeof(vec3) == sizeof(float) * 3);
