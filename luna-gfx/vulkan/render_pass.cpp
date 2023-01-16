@@ -16,7 +16,7 @@
 
 namespace luna {
 namespace vulkan {
-inline auto convert(const gfx::Attachment& attachment)
+inline auto convert(const gfx::Attachment& attachment, vk::PhysicalDeviceProperties& prop)
     -> vk::AttachmentDescription {
   using StoreOps = vk::AttachmentStoreOp;
   using LoadOps = vk::AttachmentLoadOp;
@@ -26,14 +26,14 @@ inline auto convert(const gfx::Attachment& attachment)
   //auto layout = vk::ImageLayout::eColorAttachmentOptimal;
   auto layout = vk::ImageLayout::eGeneral;
   auto stencil_store = is_depth ? StoreOps::eStore : StoreOps::eDontCare;
-  auto stencil_load = is_depth ? LoadOps::eLoad : LoadOps::eDontCare;
+  auto stencil_load = is_depth ? LoadOps::eDontCare : LoadOps::eDontCare;
   auto load_op = LoadOps::eClear;  /// TODO make configurable
   auto store_op = StoreOps::eStore;
 
   if(is_depth) layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
   auto desc = vk::AttachmentDescription();
-  desc.setSamples(vk::SampleCountFlagBits::e1);
+  desc.setSamples(sample_count(attachment.views[0].msaa_samples(), prop));
   desc.setLoadOp(load_op);
   desc.setStoreOp(store_op);
   desc.setFormat(format);
@@ -154,7 +154,7 @@ auto RenderPass::add_subpass(const gfx::Subpass& in_subpass, std::size_t index) 
     auto reference = vk::AttachmentReference(); 
     auto clear = vk::ClearValue();
     auto& attachment = in_subpass.attachments[index];
-    auto description = convert(attachment);
+    auto description = convert(attachment, this->m_device->properties);
     
     auto& img = res.images[attachment.views[0].handle()];
     for(auto index = 0u; index < 4; ++index) color.float32[index] = attachment.clear_color[index];
@@ -165,7 +165,7 @@ auto RenderPass::add_subpass(const gfx::Subpass& in_subpass, std::size_t index) 
     reference.setAttachment(this->m_attachments.size());
     if(is_depth) {
       reference.setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
-      subpass.depth = reference;  
+      subpass.depth = reference;
       clear.depthStencil.depth = attachment.clear_color[0];
       clear.depthStencil.stencil = 0;
       subpass.desc.setPDepthStencilAttachment(std::addressof(*subpass.depth));

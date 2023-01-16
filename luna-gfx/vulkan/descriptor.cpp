@@ -201,7 +201,7 @@ auto Descriptor::bind(std::string_view name, const Image& image) -> bool {
       write.setDstArrayElement(image.layer);
       write.setDescriptorCount(1);
       write.setPImageInfo(&info);
-
+      
       auto device = this->m_device->gpu;
       auto& dispatch = this->m_device->m_dispatch;
       device.updateDescriptorSets(1, &write, 0, nullptr, dispatch);

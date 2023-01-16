@@ -26,6 +26,21 @@ enum class Topology : int {
   TriangleStrip,
 };
 
+/** The possible culling strategy of the pipeline.
+*/
+enum class CullMode {
+  None,
+  FrontFace,
+  BackFace,
+};
+
+/** The way to interpret geometry in terms of Culling.
+*/
+enum class FrontFaceType {
+  Clockwise,
+  CounterClockwise,
+};
+
 /** Structure to describe a viewport into this pipeline's scene.
  */
 struct Viewport {
@@ -53,6 +68,18 @@ struct GraphicsPipelineDetails {
    * If none are selected, then None is the default.
   */
   std::unordered_map<std::string, ColorBlendStyle> blend_funcs;
+
+  /** The number of samples to use for multisampling. (MSAA)
+  */
+  std::size_t num_multisamples = 8u;
+
+  /** The type of culling to use for this pipeline.
+  */
+  CullMode cull_mode = CullMode::None;
+
+  /** The winding order way for this pipeline to interpret all geometry for culling reasons.
+  */
+  FrontFaceType winding = FrontFaceType::Clockwise;
 };
 
 struct GraphicsPipelineInfo {

@@ -4,7 +4,8 @@
 
 namespace luna {
 namespace gfx {
-/** Template structure containing information and data about an image.
+/**
+ *  Template structure containing information and data about an image.
  */
 template <typename Type>
 struct CPUImageInfo {

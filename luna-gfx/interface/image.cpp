@@ -60,6 +60,13 @@ auto ImageView::format() const -> ImageFormat {
   return vulkan::convert(img.format);
 }
 
+auto ImageView::msaa_samples() const -> std::size_t {
+  LunaAssert(this-m_handle >= 0, "Cannot access an invalid image view!");
+  auto& res = vulkan::global_resources();
+  auto& img = res.images[this->m_handle];
+  return img.info.msaa_samples;
+}
+
 auto ImageView::width() const -> std::size_t {
   LunaAssert(this-m_handle >= 0, "Cannot access an invalid image view!");
   auto& res = vulkan::global_resources();

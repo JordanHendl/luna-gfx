@@ -1,4 +1,5 @@
 #include "luna-gfx/vulkan/global_resources.hpp"
+#include "luna-gfx/vulkan/utils/helper_functions.hpp"
 #include "luna-gfx/vulkan/vulkan_defines.hpp"
 #include "luna-gfx/vulkan/pipeline.hpp"
 #include <cstdio>
@@ -19,6 +20,23 @@ inline auto convert(gfx::Topology topology) -> vk::PrimitiveTopology {
       return vk::PrimitiveTopology::eTriangleStrip;
     default:
       return vk::PrimitiveTopology::eTriangleList;
+  }
+}
+
+inline auto convert(gfx::CullMode mode) {
+  switch(mode) {
+    case gfx::CullMode::None: return vk::CullModeFlagBits::eNone;
+    case gfx::CullMode::BackFace: return vk::CullModeFlagBits::eBack;
+    case gfx::CullMode::FrontFace: return vk::CullModeFlagBits::eFront;
+    default: return vk::CullModeFlagBits::eNone;
+  }
+}
+
+inline auto convert(gfx::FrontFaceType type) {
+  switch(type) {
+    case gfx::FrontFaceType::CounterClockwise: return vk::FrontFace::eCounterClockwise;
+    case gfx::FrontFaceType::Clockwise: return vk::FrontFace::eClockwise;
+    default: return vk::FrontFace::eClockwise;
   }
 }
 
@@ -263,11 +281,17 @@ auto Pipeline::parse(const gfx::GraphicsPipelineInfo& info) -> void {
     this->m_depth_stencil_info.setMaxDepthBounds(1.0f);
   }
 
+  this->m_rasterization_info.setCullMode(convert(info.details.cull_mode));
+  this->m_rasterization_info.setFrontFace(convert(info.details.winding));
+  
   this->m_assembly_info.setTopology(convert(info.details.topology));
   this->addViewport(info.initial_viewport);
+
+  auto num_samples = std::size_t(64u);
   for(auto& subpass : this->m_render_pass->subpasses()) {
     if(subpass.name == info.subpass) {
       for(auto& attach : subpass.luna_attachments) {
+
         auto style = gfx::ColorBlendStyle::None;
         auto iter = info.details.blend_funcs.find(attach.name); // Assuming that an attachment has valid image views.
         if(iter != info.details.blend_funcs.end()) {
@@ -276,7 +300,10 @@ auto Pipeline::parse(const gfx::GraphicsPipelineInfo& info) -> void {
         if(attach.views[0].format() != gfx::ImageFormat::Depth) {
           this->m_color_blend_attachments.push_back(color_blend_from_style(style));
         }
+
+        num_samples = std::min(num_samples, attach.views[0].msaa_samples());
       }
+      this->m_multisample_info.setRasterizationSamples(sample_count(num_samples, this->m_device->properties));
     };
   }
   // @JH TODO add more config to parse.
