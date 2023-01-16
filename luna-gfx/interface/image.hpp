@@ -22,11 +22,12 @@ enum class ImageFormat {
 struct ImageInfo {
   std::string name = "LunaImage";
   int gpu = 0;
-  size_t width = 1280;
-  size_t height = 1024;
-  size_t layers = 1;
+  std::size_t width = 1280u;
+  std::size_t height = 1024u;
+  std::size_t layers = 1u;
   ImageFormat format = ImageFormat::RGBA8;
-  size_t num_mips = 1;
+  std::size_t num_mips = 1u;
+  std::size_t msaa_samples = 1u;
   bool is_cubemap = false;
 };
 
@@ -72,6 +73,7 @@ public:
   [[nodiscard]] auto mip_level() const -> std::size_t{return this->m_mip_level;}
   [[nodiscard]] auto name() const -> std::string;
   [[nodiscard]] auto format() const -> ImageFormat;
+  [[nodiscard]] auto msaa_samples() const -> std::size_t;
   [[nodiscard]] auto width() const -> std::size_t;
   [[nodiscard]] auto height() const -> std::size_t;
   [[nodiscard]] auto layers() const -> std::size_t;

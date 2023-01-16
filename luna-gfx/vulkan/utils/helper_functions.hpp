@@ -36,6 +36,26 @@ inline auto convert(vk::Format fmt) -> gfx::ImageFormat {
   }
 }
 
+inline auto sample_count(std::size_t s, vk::PhysicalDeviceProperties& props) -> vk::SampleCountFlagBits {
+  auto c = props.limits.framebufferColorSampleCounts & props.limits.framebufferDepthSampleCounts;
+  // TODO: make this so if someone picks say... 5, it will default to the lowest possible one (4). 
+  switch(s) {
+    case 64: if(c & vk::SampleCountFlagBits::e64) return vk::SampleCountFlagBits::e64;
+      [[fallthrough]];
+    case 32: if(c & vk::SampleCountFlagBits::e32) return vk::SampleCountFlagBits::e32;
+      [[fallthrough]];
+    case 16: if(c & vk::SampleCountFlagBits::e16) return vk::SampleCountFlagBits::e16;
+      [[fallthrough]];
+    case 8: if(c & vk::SampleCountFlagBits::e8) return vk::SampleCountFlagBits::e8;
+      [[fallthrough]];
+    case 4: if(c & vk::SampleCountFlagBits::e4) return vk::SampleCountFlagBits::e4; 
+      [[fallthrough]];
+    case 2: if(c & vk::SampleCountFlagBits::e2) return vk::SampleCountFlagBits::e2;
+      [[fallthrough]];
+    default: return vk::SampleCountFlagBits::e1;
+  }
+}
+
 inline auto size_from_format(gfx::ImageFormat fmt) -> size_t {
   switch(fmt) {
     case gfx::ImageFormat::Depth : return sizeof(float);
@@ -523,7 +543,7 @@ inline auto create_image(gfx::ImageInfo& in_info, vk::ImageLayout layout, vk::Im
   image.layout = layout;
   image.format = convert(in_info.format);
   image.usage = usage;
-
+  image.info.msaa_samples = 1;
   if (in_info.is_cubemap) {
     image.view_type = vk::ImageViewType::eCube;
   } else {
@@ -544,7 +564,7 @@ inline auto create_image(gfx::ImageInfo& in_info, vk::ImageLayout layout, vk::Im
   image.subresource.setBaseArrayLayer(0);
   image.subresource.setLayerCount(in_info.layers);
   image.subresource.setMipLevel(0);
-
+  
   image.layout = layout;
   image.usage = usage;
   image.alloc = nullptr;
@@ -588,6 +608,7 @@ inline auto create_image(gfx::ImageInfo& in_info, vk::ImageLayout layout, vk::Im
   info.initialLayout = vk::ImageLayout::eUndefined;
   info.mipLevels = in_info.num_mips;
   info.usage = usage;
+  info.samples = sample_count(in_info.msaa_samples, gpu.properties);
   alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
 
   image.subresource.setAspectMask(vk::ImageAspectFlagBits::eColor);

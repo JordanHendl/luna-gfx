@@ -105,8 +105,6 @@ class Swapchain {
   /** Method to choose an extent from the surface capabilities.
    */
   auto choose_extent() -> void;
-
-  
 }; 
 }
 }
